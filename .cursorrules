@@ -1,0 +1,39 @@
+# TestrisXD Project Rules
+
+# Project-specific information
+- TestrisXD is a Tetris-like browser game
+- Built with HTML, CSS, and JavaScript
+- Uses Canvas for rendering game elements
+- Classic Tetris scoring system
+- Game consists of falling tetromino pieces that need to be arranged to create complete rows
+
+# File Structure
+- HTML: index.html (main game page)
+- CSS: styles.css (all styling)
+- JavaScript files in js/ directory:
+  - utils.js: Utility functions and drawing helpers
+  - tetromino.js: Tetromino piece logic
+  - board.js: Game board logic 
+  - controls.js: User input handling
+  - game.js: Main game logic
+
+# Key Components
+- Tetromino: A game piece composed of four blocks in different arrangements
+- Board: 10x20 grid where the game is played
+- Controls: Keyboard and button controls for game interaction
+- Game: Main game logic that ties everything together
+- Canvas: HTML5 Canvas elements for rendering the game board and next piece
+
+# Game Mechanics
+- Tetrominoes fall from the top of the board
+- Player can move them left/right, rotate them, and speed up their fall
+- When a row is completely filled with blocks, it disappears and awards points
+- Game ends when blocks stack up to the top of the board
+- Levels increase as more lines are cleared, increasing game speed
+
+# Coding Style
+- Use camelCase for variables and functions
+- Classes should start with a capital letter
+- Include clear, concise comments
+- Organize code into logical modules
+- Follow modern JavaScript practices 

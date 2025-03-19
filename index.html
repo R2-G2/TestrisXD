@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TestrisXD</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 id="game-title">TestrisXD</h1>
+            <div class="score-container">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="level">Level: <span id="level">1</span></div>
+                <div class="lines">Lines: <span id="lines">0</span></div>
+            </div>
+        </div>
+        <div class="game-area">
+            <div class="side-panel">
+                <div class="panel-section next-piece-section">
+                    <h3>Next Piece</h3>
+                    <div class="next-piece-display">
+                        <!-- Next piece preview will go here -->
+                    </div>
+                </div>
+                <div class="panel-section controls-section">
+                    <h3>Controls</h3>
+                    <ul class="controls-list">
+                        <li>↑: Rotate</li>
+                        <li>←: Move Left</li>
+                        <li>→: Move Right</li>
+                        <li>↓: Move Down</li>
+                        <li>Space: Hard Drop</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="play-area">
+                <div class="game-grid">
+                    <div class="game-board">
+                        <canvas class="game-canvas" width="200" height="400"></canvas>
+                    </div>
+                    <div class="game-board">
+                        <canvas class="game-canvas" width="200" height="400"></canvas>
+                    </div>
+                    <div class="game-board">
+                        <canvas class="game-canvas" width="200" height="400"></canvas>
+                    </div>
+                    <div class="game-board">
+                        <canvas class="game-canvas" width="200" height="400"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="game-footer">
+            <button id="start-button">Start Game</button>
+            <button id="pause-button">Pause</button>
+            <button id="stop-button">Stop Game</button>
+        </div>
+    </div>
+    <script src="js/utils.js"></script>
+    <script src="js/tetromino.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html> 
