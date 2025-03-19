@@ -34,8 +34,6 @@ A Tetris-like browser game built with HTML, CSS, and JavaScript using Canvas for
   - `controls.js` - User input handling
   - `game.js` - Main game logic
 
-## @todo
-
 ## Problems?
 
 Fork! Fork it! Fork you! Fork me, right?
