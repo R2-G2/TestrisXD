@@ -7,12 +7,21 @@ class Game {
         // Canvas elements
         this.canvases = document.querySelectorAll('.game-canvas');
         
+        // Board orientation - defines which boards have which mirroring settings
+        // [0, 1, 2, 3] means boards are in original position
+        // The value at each index represents which board's mirroring settings to use
+        this.boardOrientation = [0, 1, 2, 3];
+        
         // Game board
-        this.board = null;
+        this.board = {
+            width: 10,
+            height: 20,
+            grid: Array(20).fill().map(() => Array(10).fill(null))
+        };
         
         // Current and next pieces
         this.currentPiece = null;
-        this.nextPiece = null;
+        this.nextPiece = new Tetromino();
         
         // Game state
         this.isGameOver = false;
@@ -32,19 +41,98 @@ class Game {
         this.levelElement = document.getElementById('level');
         this.linesElement = document.getElementById('lines');
         
-        // Next piece display
-        this.nextPieceDisplay = document.querySelector('.next-piece-display');
-        this.nextPieceCanvas = document.createElement('canvas');
-        this.nextPieceCanvas.width = 100;
-        this.nextPieceCanvas.height = 100;
-        this.nextPieceDisplay.appendChild(this.nextPieceCanvas);
-        this.nextPieceCtx = this.nextPieceCanvas.getContext('2d');
+        // Next piece displays (all 4 previews)
+        this.nextPieceDisplays = document.querySelectorAll('.next-piece-display');
+        this.nextPieceCanvases = [];
+        
+        // Create canvas for each next piece display
+        this.nextPieceDisplays.forEach((display, index) => {
+            const canvas = document.createElement('canvas');
+            canvas.className = 'next-piece-canvas';
+            display.appendChild(canvas);
+            this.nextPieceCanvases.push(canvas);
+        });
+        
+        // Set initial canvas dimensions but maintain aspect ratio
+        this.resizeCanvases();
+        
+        // Add window resize event listener
+        window.addEventListener('resize', () => {
+            this.resizeCanvases();
+            if (this.board && !this.isGameOver) {
+                // Add a small delay to ensure CSS has been applied
+                setTimeout(() => this.renderAllCanvases(), 50);
+            }
+        });
+        
+        // Draw initial grid on all game canvases
+        this.canvases.forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            drawGrid(ctx, canvas.width, canvas.height);
+        });
+        
+        // Render the next piece preview
+        this.renderNextPiece();
         
         // Controls
         this.setupControls();
         
         // Buttons
         this.setupButtons();
+    }
+    
+    // Resize canvases based on container size while maintaining aspect ratio
+    resizeCanvases() {
+        // Resize main game canvases
+        this.canvases.forEach(canvas => {
+            const container = canvas.parentElement;
+            
+            // Get the computed dimensions of the container
+            const containerStyle = window.getComputedStyle(container);
+            const containerWidth = Math.floor(parseFloat(containerStyle.width));
+            const containerHeight = Math.floor(parseFloat(containerStyle.height));
+            
+            // Set the canvas size to match the container exactly
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            // Force the canvas to use the container dimensions
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            
+            // Draw the initial grid
+            const ctx = canvas.getContext('2d');
+            drawGrid(ctx, canvas.width, canvas.height);
+        });
+        
+        // Resize next piece preview canvases
+        this.nextPieceCanvases.forEach(canvas => {
+            const container = canvas.parentElement;
+            
+            // Get the computed dimensions of the container
+            const containerStyle = window.getComputedStyle(container);
+            const containerWidth = Math.floor(parseFloat(containerStyle.width));
+            const containerHeight = Math.floor(parseFloat(containerStyle.height));
+            
+            // Set the canvas size to match the container exactly
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            // Force the canvas to use the container dimensions
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            
+            // Draw the initial grid for preview (optional)
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
+        
+        // Re-render if game is active
+        if (this.board && !this.isGameOver && !this.isPaused) {
+            this.renderAllCanvases();
+            this.renderNextPiece();
+        }
     }
     
     // Initialize game elements
@@ -66,6 +154,15 @@ class Game {
             height: 20,
             grid: Array(20).fill().map(() => Array(10).fill(null))
         };
+        
+        // Reset board orientation
+        this.boardOrientation = [0, 1, 2, 3];
+        
+        // Redraw the grid on all game canvases
+        this.canvases.forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            drawGrid(ctx, canvas.width, canvas.height);
+        });
     }
     
     // Start the game
@@ -73,9 +170,30 @@ class Game {
         // Initialize game elements
         this.init();
         
-        // Start the game loop
+        // Ensure we have a next piece
+        if (!this.nextPiece) {
+            this.nextPiece = new Tetromino();
+        }
+        
+        // Create a new piece and start the game loop
         this.createNewPiece();
         this.startGameLoop();
+        
+        // Update UI
+        const pauseButton = document.getElementById('pause-button');
+        const startButton = document.getElementById('start-button');
+        
+        if (pauseButton) {
+            pauseButton.textContent = 'Pause';
+        }
+        
+        if (startButton) {
+            startButton.textContent = 'Restart';
+        }
+        
+        // Render everything
+        this.renderAllCanvases();
+        this.renderNextPiece();
     }
     
     // Game loop - called at regular intervals based on level
@@ -123,11 +241,14 @@ class Game {
         const cellWidth = width / 10;
         const cellHeight = height / 20;
         
-        // Determine mirroring based on canvas index
+        // Get the mirroring orientation based on the board orientation
+        const mirrorOrientation = this.boardOrientation[canvasIndex];
+        
+        // Determine mirroring based on the orientation value
         // Boards 2 and 4 (index 1 and 3) are horizontally mirrored
         // Boards 3 and 4 (index 2 and 3) are vertically mirrored (upside down)
-        const isHorizontalMirrored = canvasIndex === 1 || canvasIndex === 3;
-        const isVerticalMirrored = canvasIndex === 2 || canvasIndex === 3;
+        const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
+        const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
         
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
@@ -277,6 +398,10 @@ class Game {
         if (this.currentPiece && !this.isGameOver && !this.isPaused) {
             const moved = this.currentPiece.moveLeft(this.board);
             if (moved) {
+                // Rotate the board orientation clockwise when moving left
+                this.rotateBoardsClockwise();
+            } else {
+                // Even if the piece couldn't move, still render all canvases
                 this.renderAllCanvases();
             }
         }
@@ -287,6 +412,10 @@ class Game {
         if (this.currentPiece && !this.isGameOver && !this.isPaused) {
             const moved = this.currentPiece.moveRight(this.board);
             if (moved) {
+                // Rotate the board orientation counter-clockwise when moving right
+                this.rotateBoardsCounterClockwise();
+            } else {
+                // Even if the piece couldn't move, still render all canvases
                 this.renderAllCanvases();
             }
         }
@@ -382,108 +511,127 @@ class Game {
         this.renderNextPiece();
     }
     
-    // Render the next piece preview
+    // Render the next piece previews
     renderNextPiece() {
-        const canvas = this.nextPieceCanvas;
-        const ctx = this.nextPieceCtx;
-        
-        // Get the exact block size from the game board for consistency
-        const gameCanvas = this.canvases[0];
-        const blockSize = Math.floor(gameCanvas.width / 10);
-        
-        // Clear the canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw background
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Get the blocks for the next piece
-        const blocks = this.nextPiece.blocks;
-        
-        // Calculate the bounds of the piece
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-        
-        blocks.forEach(block => {
-            minX = Math.min(minX, block.x);
-            maxX = Math.max(maxX, block.x);
-            minY = Math.min(minY, block.y);
-            maxY = Math.max(maxY, block.y);
-        });
-        
-        // Calculate piece dimensions
-        const pieceWidth = maxX - minX + 1;
-        const pieceHeight = maxY - minY + 1;
-        
-        // Calculate total piece size in pixels
-        const totalWidth = pieceWidth * blockSize;
-        const totalHeight = pieceHeight * blockSize;
-        
-        // Debug: Draw a border around where the piece should be centered
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 1;
-        
-        // Calculate exact center position with integer offsets
-        // Divide by 2 and apply Math.floor to both sides to ensure symmetry
-        const startX = Math.floor((canvas.width - totalWidth) / 2);
-        const startY = Math.floor((canvas.height - totalHeight) / 2);
-        
-        ctx.strokeRect(startX, startY, totalWidth, totalHeight);
-        
-        // Draw each block
-        blocks.forEach(block => {
-            // Calculate relative position within the piece
-            const relX = block.x - minX;
-            const relY = block.y - minY;
+        // For each preview canvas
+        this.nextPieceCanvases.forEach((canvas, index) => {
+            // Get the canvas context
+            const ctx = canvas.getContext('2d');
             
-            // Calculate absolute position on canvas
-            const x = startX + (relX * blockSize);
-            const y = startY + (relY * blockSize);
+            // Get the mirroring orientation based on the board orientation
+            const mirrorOrientation = this.boardOrientation[index];
             
-            // Draw the block with the same effect as the main blocks
-            const color = COLORS[this.nextPiece.type];
+            // Determine mirroring based on the orientation value
+            const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
+            const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
             
-            // Draw the main block
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, blockSize, blockSize);
+            // Get the exact block size from the game board for consistency
+            const gameCanvas = this.canvases[0];
+            const blockSize = Math.floor(gameCanvas.width / 10) / 2; // Smaller blocks for preview
             
-            // Calculate border and detail sizes proportionally
-            const highlightSize = Math.max(1, Math.ceil(blockSize / 10));
+            // Ensure canvas dimensions are set properly
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
             
-            // Draw diagonal cut (divide the block diagonally)
-            // First triangle - bottom-left (darker)
-            ctx.fillStyle = this.shadeColor(color, -10);
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + blockSize, y + blockSize);
-            ctx.lineTo(x, y + blockSize);
-            ctx.closePath();
-            ctx.fill();
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Second triangle - top-right (lighter)
-            ctx.fillStyle = this.shadeColor(color, 15);
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + blockSize, y);
-            ctx.lineTo(x + blockSize, y + blockSize);
-            ctx.closePath();
-            ctx.fill();
+            // Draw background
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Draw strong highlight on top and left (3D effect)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.fillRect(x, y, blockSize, highlightSize);
-            ctx.fillRect(x, y, highlightSize, blockSize);
+            // Get the blocks for the next piece
+            const blocks = this.nextPiece.blocks;
             
-            // Draw strong shadow on bottom and right (3D effect)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.fillRect(x, y + blockSize - highlightSize, blockSize, highlightSize);
-            ctx.fillRect(x + blockSize - highlightSize, y, highlightSize, blockSize);
+            // Calculate the bounds of the piece
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
             
-            // Add block border
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(x, y, blockSize, blockSize);
+            blocks.forEach(block => {
+                minX = Math.min(minX, block.x);
+                maxX = Math.max(maxX, block.x);
+                minY = Math.min(minY, block.y);
+                maxY = Math.max(maxY, block.y);
+            });
+            
+            // Calculate piece dimensions
+            const pieceWidth = maxX - minX + 1;
+            const pieceHeight = maxY - minY + 1;
+            
+            // Calculate total piece size in pixels
+            const totalWidth = pieceWidth * blockSize;
+            const totalHeight = pieceHeight * blockSize;
+            
+            // Calculate exact center position with integer offsets
+            const startX = Math.floor((canvas.width - totalWidth) / 2);
+            const startY = Math.floor((canvas.height - totalHeight) / 2);
+            
+            // Draw each block
+            blocks.forEach(block => {
+                // Calculate relative position within the piece
+                const relX = block.x - minX;
+                const relY = block.y - minY;
+                
+                // Apply mirroring to coordinates if needed
+                let displayX = relX;
+                let displayY = relY;
+                
+                if (isHorizontalMirrored) {
+                    displayX = (pieceWidth - 1) - relX;
+                }
+                
+                if (isVerticalMirrored) {
+                    displayY = (pieceHeight - 1) - relY;
+                }
+                
+                // Calculate absolute position on canvas
+                const x = startX + (displayX * blockSize);
+                const y = startY + (displayY * blockSize);
+                
+                // Draw the block with the same effect as the main blocks
+                const color = COLORS[this.nextPiece.type];
+                
+                // Draw the main block
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, blockSize, blockSize);
+                
+                // Calculate highlight size proportional to block size
+                const highlightSize = Math.max(1, Math.ceil(blockSize / 10));
+                
+                // Draw diagonal cut (divide the block diagonally)
+                // First triangle - bottom-left (darker)
+                ctx.fillStyle = this.shadeColor(color, -10);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + blockSize, y + blockSize);
+                ctx.lineTo(x, y + blockSize);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Second triangle - top-right (lighter)
+                ctx.fillStyle = this.shadeColor(color, 15);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + blockSize, y);
+                ctx.lineTo(x + blockSize, y + blockSize);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Draw strong highlight on top and left (3D effect)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillRect(x, y, blockSize, highlightSize);
+                ctx.fillRect(x, y, highlightSize, blockSize);
+                
+                // Draw strong shadow on bottom and right (3D effect)
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(x, y + blockSize - highlightSize, blockSize, highlightSize);
+                ctx.fillRect(x + blockSize - highlightSize, y, highlightSize, blockSize);
+                
+                // Add block border
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, blockSize, blockSize);
+            });
         });
     }
     
@@ -624,19 +772,32 @@ class Game {
         this.lines = 0;
         this.updateStats();
         
-        // Render empty boards
-        this.renderAllCanvases();
+        // Redraw the grid on all game canvases
+        this.canvases.forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the grid
+            drawGrid(ctx, canvas.width, canvas.height);
+        });
         
-        // Clear next piece preview
-        const ctx = this.nextPieceCtx;
-        ctx.clearRect(0, 0, this.nextPieceCanvas.width, this.nextPieceCanvas.height);
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, this.nextPieceCanvas.width, this.nextPieceCanvas.height);
+        // Clear next piece previews
+        this.nextPieceCanvases.forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
         
         // Reset button state
         const pauseButton = document.getElementById('pause-button');
         if (pauseButton) {
             pauseButton.textContent = 'Pause';
+        }
+        
+        const startButton = document.getElementById('start-button');
+        if (startButton) {
+            startButton.textContent = 'Start Game';
         }
     }
     
@@ -739,6 +900,38 @@ class Game {
         
         // Reset transparency
         ctx.globalAlpha = 1.0;
+    }
+    
+    // Rotate board orientation counter-clockwise
+    rotateBoardsCounterClockwise() {
+        // For counter-clockwise rotation in a 2x2 grid:
+        // [0, 1,    [1, 3,
+        //  2, 3] →   0, 2]
+        const newOrientation = [
+            this.boardOrientation[2],  // Bottom-left → Top-left
+            this.boardOrientation[0],  // Top-left → Top-right
+            this.boardOrientation[3],  // Bottom-right → Bottom-left
+            this.boardOrientation[1]   // Top-right → Bottom-right
+        ];
+        this.boardOrientation = newOrientation;
+        this.renderAllCanvases();
+        this.renderNextPiece(); // Update next piece previews with new orientation
+    }
+    
+    // Rotate board orientation clockwise
+    rotateBoardsClockwise() {
+        // For clockwise rotation in a 2x2 grid:
+        // [0, 1,    [2, 0,
+        //  2, 3] →   3, 1]
+        const newOrientation = [
+            this.boardOrientation[1],  // Top-right → Top-left
+            this.boardOrientation[3],  // Bottom-right → Top-right
+            this.boardOrientation[0],  // Top-left → Bottom-left
+            this.boardOrientation[2]   // Bottom-left → Bottom-right
+        ];
+        this.boardOrientation = newOrientation;
+        this.renderAllCanvases();
+        this.renderNextPiece(); // Update next piece previews with new orientation
     }
 }
 

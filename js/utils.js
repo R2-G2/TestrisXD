@@ -2,6 +2,9 @@
  * TestrisXD - Utility Functions
  */
 
+// Block size in pixels (default size for rendering)
+const BLOCK_SIZE = 20;
+
 // Tetromino colors
 const COLORS = {
     i: '#00f0f0', // cyan
@@ -87,7 +90,23 @@ function drawBlock(ctx, x, y, color, canvasWidth, canvasHeight) {
     ctx.fillRect(x * cellWidth + cellWidth * 0.9, y * cellHeight, cellWidth / 10, cellHeight);
 }
 
-// Initialize when the window loads
-window.onload = function() {
-    initializeCanvases();
-}; 
+// Draw a ghost block at a specific grid position (semi-transparent)
+function drawGhostBlock(ctx, x, y, color, canvasWidth, canvasHeight) {
+    const cellWidth = canvasWidth / 10;
+    const cellHeight = canvasHeight / 20;
+    
+    // Set transparency
+    ctx.globalAlpha = 0.3;
+    
+    // Draw semi-transparent block
+    ctx.fillStyle = color;
+    ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+    
+    // Add border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+    
+    // Reset transparency
+    ctx.globalAlpha = 1.0;
+} 
