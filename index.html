@@ -17,7 +17,7 @@
             </div>
         </div>
         <div class="game-area">
-            <div class="side-panel">
+            <div class="side-panel left-panel">
                 <div class="panel-section next-piece-section">
                     <h3>Next Piece</h3>
                     <div class="next-piece-grid">
@@ -33,16 +33,6 @@
                         <div class="next-piece-display" data-index="3">
                             <!-- Preview 4 (Both mirrors) -->
                         </div>
-                    </div>
-                </div>
-                <div class="panel-section options-section">
-                    <h3>Options</h3>
-                    <div class="option-item">
-                        <label for="theme-toggle">Dark Mode</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="theme-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
                     </div>
                 </div>
                 <div class="panel-section controls-section">
@@ -69,6 +59,25 @@
                     </div>
                     <div class="game-board">
                         <canvas class="game-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="side-panel right-panel">
+                <div class="panel-section options-section">
+                    <h3>Options</h3>
+                    <div class="option-item">
+                        <label for="theme-toggle">Dark Mode</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-item">
+                        <label for="demo-toggle">Demo Mode</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="demo-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -102,6 +111,17 @@
                         document.body.classList.remove('dark-mode');
                         console.log('Dark mode disabled');
                     }
+                });
+            }
+            
+            // Initialize demo toggle - simpler initialization here
+            const demoToggle = document.getElementById('demo-toggle');
+            if (demoToggle) {
+                demoToggle.checked = false;
+                
+                // Make sure it's initialized properly for the game class
+                demoToggle.addEventListener('click', function() {
+                    console.log('Demo mode toggled via UI:', this.checked);
                 });
             }
         });

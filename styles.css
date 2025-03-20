@@ -97,12 +97,20 @@ body {
     transition: background-color 0.3s ease;
 }
 
-/* Side Panel */
+/* Side Panels */
 .side-panel {
     width: 20%;
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.left-panel {
+    order: 1; /* Left side */
+}
+
+.right-panel {
+    order: 3; /* Right side */
 }
 
 .panel-section {
@@ -179,6 +187,7 @@ body {
     align-items: center;
     padding: 5px;
     overflow: hidden;
+    order: 2; /* Center */
 }
 
 /* Game Grid - 2x2 layout */
@@ -380,7 +389,20 @@ button {
     .side-panel {
         width: 100%;
         flex-direction: row;
+        gap: 10px;
+    }
+    
+    .left-panel {
+        order: 1;
+    }
+    
+    .play-area {
         order: 2;
+    }
+    
+    .right-panel {
+        order: 3;
+        flex-direction: row;
     }
     
     .panel-section {
@@ -402,6 +424,11 @@ button {
     
     .side-panel {
         flex-direction: column;
+        width: 100%;
+    }
+    
+    .left-panel, .right-panel {
+        order: unset; /* Default ordering for mobile */
     }
     
     .game-grid {

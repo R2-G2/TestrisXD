@@ -28,6 +28,14 @@ class Game {
             });
         }
         
+        // Initialize demo mode toggle
+        const demoToggle = document.getElementById('demo-toggle');
+        if (demoToggle) {
+            demoToggle.addEventListener('change', () => {
+                this.toggleDemoMode(demoToggle.checked);
+            });
+        }
+        
         // Board orientation - defines which boards have which mirroring settings
         // [0, 1, 2, 3] means boards are in original position
         // The value at each index represents which board's mirroring settings to use
@@ -47,6 +55,11 @@ class Game {
         // Game state
         this.isGameOver = false;
         this.isPaused = false;
+        this.isDemoMode = false;
+        this.demoTimer = null;
+        this.demoTargetMove = null; // Store the target move for AI
+        this.demoAllowNaturalFall = true; // Allow blocks to fall naturally for a while
+        this.demoMinimumFallDistance = 6; // Reduced from 8 to make the AI drop earlier
         this.score = 0;
         this.level = 1;
         this.lines = 0;
@@ -621,6 +634,11 @@ class Game {
         // Create a new next piece
         this.nextPiece = new Tetromino();
         
+        // Reset the demo target move for the AI if in demo mode
+        if (this.isDemoMode) {
+            this.demoTargetMove = null;
+        }
+        
         // Render the next piece preview
         this.renderNextPiece();
     }
@@ -902,122 +920,121 @@ class Game {
         
         if (startButton) {
             startButton.addEventListener('click', () => {
-                if (this.isGameOver) {
-                    this.start();
-                } else if (this.isPaused) {
-                    this.resume();
-                } else {
-                    this.start();
+                if (this.isGameOver || !this.isRunning) {
+                    this.startGame();
                 }
             });
         }
         
         if (pauseButton) {
             pauseButton.addEventListener('click', () => {
-                if (!this.isGameOver) {
-                    if (this.isPaused) {
-                        this.resume();
-                        pauseButton.textContent = 'Pause';
-                    } else {
-                        this.pause();
-                        pauseButton.textContent = 'Resume';
-                    }
-                }
+                this.togglePause();
             });
         }
         
         if (stopButton) {
             stopButton.addEventListener('click', () => {
-                this.stopGame();
+                this.resetGame();
             });
         }
     }
     
-    // Stop the game completely
-    stopGame() {
-        // Clear game timer
-        clearInterval(this.timer);
-        this.timer = null;
+    // Toggle game pause state
+    togglePause() {
+        if (this.isGameOver) return;
+        
+        if (this.isPaused) {
+            this.isPaused = false;
+            this.startGameLoop();
+            
+            // Restart demo mode if active
+            if (this.isDemoMode) {
+                this.startDemoMode();
+            }
+        } else {
+            this.isPaused = true;
+            clearInterval(this.timer);
+            this.timer = null;
+            
+            // Pause demo mode
+            this.stopDemoMode();
+        }
+        
+        // Update pause button text
+        const pauseButton = document.getElementById('pause-button');
+        if (pauseButton) {
+            pauseButton.textContent = this.isPaused ? 'Resume' : 'Pause';
+        }
+    }
+    
+    // Reset the game
+    resetGame() {
+        // Clear any existing timers
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+        
+        // Reset demo mode
+        this.stopDemoMode();
         
         // Reset game state
         this.isGameOver = true;
+        this.isRunning = false;
         this.isPaused = false;
         
-        // Clear the board
-        this.board.grid = Array(20).fill().map(() => Array(10).fill(null));
-        
-        // Clear current piece
-        this.currentPiece = null;
-        this.nextPiece = null;
-        
-        // Reset score display
-        this.score = 0;
-        this.level = 1;
-        this.lines = 0;
-        this.updateStats();
-        
-        // Redraw the grid on all game canvases
-        this.canvases.forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw the grid
-            drawGrid(ctx, canvas.width, canvas.height);
-        });
-        
-        // Clear next piece previews
-        this.nextPieceCanvases.forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        });
-        
-        // Reset button state
+        // Update pause button text
         const pauseButton = document.getElementById('pause-button');
         if (pauseButton) {
             pauseButton.textContent = 'Pause';
         }
         
-        const startButton = document.getElementById('start-button');
-        if (startButton) {
-            startButton.textContent = 'Start Game';
-        }
+        // Clear the board
+        this.board.grid = Array(20).fill().map(() => Array(10).fill(null));
+        
+        // Render empty board
+        this.renderAllCanvases();
     }
     
     // Set up keyboard controls
     setupControls() {
         document.addEventListener('keydown', (event) => {
-            if (this.isGameOver) return;
+            // Ignore controls in demo mode except for pause, restart, etc.
+            if (this.isDemoMode && !['p', 'r', 'escape'].includes(event.key.toLowerCase())) {
+                return;
+            }
             
-            switch (event.key) {
-                case 'ArrowLeft':
-                    this.movePieceLeft();
-                    event.preventDefault();
-                    break;
-                case 'ArrowRight':
-                    this.movePieceRight();
-                    event.preventDefault();
-                    break;
-                case 'ArrowDown':
-                    this.movePieceDown();
-                    event.preventDefault();
-                    break;
-                case 'ArrowUp':
-                    this.rotatePiece();
-                    event.preventDefault();
-                    break;
-                case ' ': // Space
-                    this.hardDrop();
-                    event.preventDefault();
-                    break;
-                case 'p': // p key
-                    if (this.isPaused) {
-                        this.resume();
-                    } else {
-                        this.pause();
-                    }
-                    break;
+            if (!this.isGameOver && this.isRunning) {
+                switch (event.key.toLowerCase()) {
+                    case 'arrowup':
+                    case 'w':
+                        this.rotatePiece();
+                        break;
+                    case 'arrowleft':
+                    case 'a':
+                        this.movePieceLeft();
+                        break;
+                    case 'arrowright':
+                    case 'd':
+                        this.movePieceRight();
+                        break;
+                    case 'arrowdown':
+                    case 's':
+                        this.movePieceDown();
+                        break;
+                    case ' ':
+                        this.hardDrop();
+                        break;
+                    case 'p':
+                        this.togglePause();
+                        break;
+                    case 'escape':
+                        this.togglePause();
+                        break;
+                    case 'r':
+                        this.resetGame();
+                        break;
+                }
             }
         });
     }
@@ -1166,6 +1183,428 @@ class Game {
         this.boardOrientation = newOrientation;
         this.renderAllCanvases();
         this.renderNextPiece(); // Update next piece previews with new orientation
+    }
+    
+    // Toggle demo mode on/off
+    toggleDemoMode(isActive) {
+        this.isDemoMode = isActive;
+        console.log('Demo mode:', isActive ? 'ON' : 'OFF');
+        
+        if (isActive) {
+            // Start demo mode if the game is running
+            if (this.isRunning && !this.isPaused && !this.isGameOver) {
+                this.startDemoMode();
+            }
+        } else {
+            // Stop demo mode
+            this.stopDemoMode();
+        }
+    }
+    
+    // Start demo mode auto-play
+    startDemoMode() {
+        if (!this.isDemoMode) return;
+        
+        // Clear any existing demo timer
+        this.stopDemoMode();
+        
+        // Calculate the initial target move
+        this.demoTargetMove = null;
+        
+        // Start new demo timer for AI moves
+        this.demoTimer = setInterval(() => {
+            if (this.isRunning && !this.isPaused && !this.isGameOver && this.isDemoMode) {
+                this.makeDemoMove();
+            }
+        }, 750); // Even slower adjustment pace (750ms instead of 550ms)
+    }
+    
+    // Stop demo mode auto-play
+    stopDemoMode() {
+        if (this.demoTimer) {
+            clearInterval(this.demoTimer);
+            this.demoTimer = null;
+        }
+        this.demoTargetMove = null;
+    }
+    
+    // Make an intelligent move in demo mode
+    makeDemoMove() {
+        if (!this.currentPiece || !this.isDemoMode) return;
+        
+        // If we don't have a target move yet, calculate one and remember initial Y position
+        if (!this.demoTargetMove) {
+            this.demoTargetMove = this.findBestMove();
+            this.demoTargetMove.initialY = this.currentPiece.y; // Remember starting position
+            this.demoTargetMove.lastAdjustmentTime = Date.now(); // Track adjustment timing
+            return; // Wait one interval before making first adjustment
+        }
+        
+        // Check if we need to wait before next adjustment (forces pausing between adjustments)
+        if (this.demoTargetMove.lastAdjustmentTime && 
+            Date.now() - this.demoTargetMove.lastAdjustmentTime < 700) {
+            return; // Not enough time has passed since last adjustment (increased from 500ms)
+        }
+        
+        // If we have a target move, make one adjustment at a time
+        if (this.demoTargetMove) {
+            // First prioritize rotation
+            if (this.currentPiece.rotationState !== this.demoTargetMove.rotation) {
+                // Rotate once
+                this.rotatePiece();
+                this.demoTargetMove.lastAdjustmentTime = Date.now();
+                return; // Only do one adjustment per call
+            }
+            
+            // Then adjust horizontal position
+            if (this.currentPiece.x < this.demoTargetMove.x) {
+                // Move right once
+                this.movePieceRight();
+                this.demoTargetMove.lastAdjustmentTime = Date.now();
+                return; // Only do one adjustment per call
+            } else if (this.currentPiece.x > this.demoTargetMove.x) {
+                // Move left once
+                this.movePieceLeft();
+                this.demoTargetMove.lastAdjustmentTime = Date.now();
+                return; // Only do one adjustment per call
+            }
+            
+            // If we've reached the target position (rotation and x-coordinate)
+            if (this.currentPiece.rotationState === this.demoTargetMove.rotation && 
+                this.currentPiece.x === this.demoTargetMove.x) {
+                
+                // Check if the piece has fallen enough, comparing to initial Y
+                const fallDistance = this.currentPiece.y - this.demoTargetMove.initialY;
+                
+                if (fallDistance >= this.demoMinimumFallDistance) {
+                    // It has fallen enough, now hard drop
+                    this.hardDrop();
+                    // Reset the target move for the next piece
+                    this.demoTargetMove = null;
+                } else {
+                    // Let it fall naturally one more step
+                    // The game's update loop will handle this
+                    return;
+                }
+            }
+        }
+    }
+    
+    // Find the best move for the current piece
+    findBestMove() {
+        if (!this.currentPiece) return null;
+        
+        // Store the initial state
+        const originalX = this.currentPiece.x;
+        const originalY = this.currentPiece.y;
+        const originalRotation = this.currentPiece.rotationState;
+        const originalBlocks = JSON.parse(JSON.stringify(this.currentPiece.blocks));
+        
+        let bestScore = -Infinity;
+        let bestMove = {
+            rotation: 0,
+            x: 0,
+            initialY: originalY // Include initial Y position
+        };
+        
+        // Try each rotation (0-3)
+        for (let rotation = 0; rotation < 4; rotation++) {
+            // Reset the piece to its original position
+            this.currentPiece.x = originalX;
+            this.currentPiece.y = originalY;
+            this.currentPiece.blocks = JSON.parse(JSON.stringify(originalBlocks));
+            this.currentPiece.rotationState = originalRotation;
+            
+            // Apply the rotation
+            for (let r = 0; r < rotation; r++) {
+                if (!this.currentPiece.rotate(this.board)) {
+                    // Skip if this rotation is invalid
+                    break;
+                }
+            }
+            
+            // Try each x position
+            for (let x = 0; x < this.board.width; x++) {
+                // Reset y position for each x
+                this.currentPiece.y = originalY;
+                
+                // Move to the target x
+                this.currentPiece.x = x;
+                
+                // Check if this position is valid
+                if (this.currentPiece.hasCollision(this.board)) {
+                    continue;
+                }
+                
+                // Simulate dropping the piece
+                let dropY = this.currentPiece.y;
+                while (!this.currentPiece.hasCollision(this.board)) {
+                    this.currentPiece.y++;
+                }
+                this.currentPiece.y--; // Move back up to the last valid position
+                
+                // Score this move
+                const score = this.evaluatePosition();
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = {
+                        rotation: this.currentPiece.rotationState,
+                        x: this.currentPiece.x,
+                        initialY: originalY // Include initial Y position
+                    };
+                }
+            }
+        }
+        
+        // Restore the piece to its original state
+        this.currentPiece.x = originalX;
+        this.currentPiece.y = originalY;
+        this.currentPiece.blocks = JSON.parse(JSON.stringify(originalBlocks));
+        this.currentPiece.rotationState = originalRotation;
+        
+        return bestMove;
+    }
+    
+    // Evaluate a potential position for the current piece
+    evaluatePosition() {
+        // Improved evaluation based on:
+        // 1. Height of the resulting stack (lower is better)
+        // 2. Number of holes created (fewer is better)
+        // 3. Number of lines that would be cleared (more is better)
+        // 4. Smoothness of the resulting surface (smoother is better)
+        // 5. Maximum height of any column (lower is better)
+        // 6. Accessibility of empty spaces (more accessible is better)
+        
+        // Calculate the max column height after placement
+        const maxHeight = this.calculateMaxHeight();
+        // Heavily penalize high stacks to prevent early game over
+        const maxHeightScore = -Math.pow(maxHeight, 2) * 0.8;
+        
+        // Prefer pieces that land lower (fill the board from bottom up)
+        const landingHeight = this.currentPiece.y;
+        const pieceHeight = this.getPieceHeight();
+        const heightScore = (this.board.height - (landingHeight + pieceHeight)) * 1.5;
+        
+        // Prefer moves that create a smoother surface - increased weight
+        const smoothnessScore = this.calculateSmoothnessScore() * 2.5;
+        
+        // Heavily penalize moves that create holes - increased penalty
+        const holesScore = -this.countHolesCreated() * 7.5;
+        
+        // Strongly prefer moves that clear lines - increased reward
+        const linesCleared = this.countLinesCleared();
+        const linesScore = linesCleared * 20;
+        
+        // Bonus for keeping the center columns lower (for better I-piece placement)
+        const centerColumnsScore = this.evaluateCenterColumns() * 2;
+        
+        // Return the total score - now with more strategic weights
+        return heightScore + smoothnessScore + holesScore + linesScore + maxHeightScore + centerColumnsScore;
+    }
+    
+    // New method to calculate the maximum height of any column
+    calculateMaxHeight() {
+        // Create a copy of the board
+        const tempBoard = Array(20).fill().map((_, y) => 
+            Array(10).fill().map((_, x) => this.board.grid[y][x])
+        );
+        
+        // Place the current piece on the board
+        const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        coordinates.forEach(coord => {
+            if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
+                tempBoard[coord.y][coord.x] = this.currentPiece.type;
+            }
+        });
+        
+        // Calculate column heights
+        const heights = Array(10).fill(0);
+        for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 20; y++) {
+                if (tempBoard[y][x]) {
+                    heights[x] = 20 - y;
+                    break;
+                }
+            }
+        }
+        
+        // Return the maximum height
+        return Math.max(...heights);
+    }
+    
+    // New method to evaluate if the center columns are kept lower
+    // This is a good strategy for accommodating I pieces
+    evaluateCenterColumns() {
+        // Create a copy of the board
+        const tempBoard = Array(20).fill().map((_, y) => 
+            Array(10).fill().map((_, x) => this.board.grid[y][x])
+        );
+        
+        // Place the current piece on the board
+        const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        coordinates.forEach(coord => {
+            if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
+                tempBoard[coord.y][coord.x] = this.currentPiece.type;
+            }
+        });
+        
+        // Calculate column heights
+        const heights = Array(10).fill(0);
+        for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 20; y++) {
+                if (tempBoard[y][x]) {
+                    heights[x] = 20 - y;
+                    break;
+                }
+            }
+        }
+        
+        // Calculate the average height of edge columns (0,1,8,9)
+        const edgeSum = heights[0] + heights[1] + heights[8] + heights[9];
+        const edgeAvg = edgeSum / 4;
+        
+        // Calculate the average height of center columns (3,4,5,6)
+        const centerSum = heights[3] + heights[4] + heights[5] + heights[6];
+        const centerAvg = centerSum / 4;
+        
+        // Return positive score if center is lower than edges, otherwise negative
+        return edgeAvg - centerAvg;
+    }
+    
+    // Helper methods for position evaluation
+    getPieceHeight() {
+        const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        let minY = Infinity;
+        let maxY = -Infinity;
+        
+        coordinates.forEach(coord => {
+            minY = Math.min(minY, coord.y);
+            maxY = Math.max(maxY, coord.y);
+        });
+        
+        return maxY - minY + 1;
+    }
+    
+    calculateSmoothnessScore() {
+        // Create a copy of the board
+        const tempBoard = Array(20).fill().map((_, y) => 
+            Array(10).fill().map((_, x) => this.board.grid[y][x])
+        );
+        
+        // Place the current piece on the board
+        const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        coordinates.forEach(coord => {
+            if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
+                tempBoard[coord.y][coord.x] = this.currentPiece.type;
+            }
+        });
+        
+        // Calculate column heights
+        const heights = Array(10).fill(0);
+        for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 20; y++) {
+                if (tempBoard[y][x]) {
+                    heights[x] = 20 - y;
+                    break;
+                }
+            }
+        }
+        
+        // Calculate smoothness (sum of height differences between adjacent columns)
+        let smoothness = 0;
+        for (let x = 0; x < 9; x++) {
+            smoothness -= Math.abs(heights[x] - heights[x + 1]);
+        }
+        
+        return smoothness;
+    }
+    
+    countHolesCreated() {
+        // Create a copy of the board
+        const tempBoard = Array(20).fill().map((_, y) => 
+            Array(10).fill().map((_, x) => this.board.grid[y][x])
+        );
+        
+        // Place the current piece on the board
+        const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        coordinates.forEach(coord => {
+            if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
+                tempBoard[coord.y][coord.x] = this.currentPiece.type;
+            }
+        });
+        
+        // Count holes (empty cells with non-empty cells above them)
+        let holes = 0;
+        for (let x = 0; x < 10; x++) {
+            let blockFound = false;
+            for (let y = 0; y < 20; y++) {
+                if (tempBoard[y][x]) {
+                    blockFound = true;
+                } else if (blockFound) {
+                    holes++;
+                }
+            }
+        }
+        
+        return holes;
+    }
+    
+    countLinesCleared() {
+        // Create a copy of the board
+        const tempBoard = Array(20).fill().map((_, y) => 
+            Array(10).fill().map((_, x) => this.board.grid[y][x])
+        );
+        
+        // Place the current piece on the board
+        const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        coordinates.forEach(coord => {
+            if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
+                tempBoard[coord.y][coord.x] = this.currentPiece.type;
+            }
+        });
+        
+        // Count complete lines
+        let linesCleared = 0;
+        for (let y = 0; y < 20; y++) {
+            if (tempBoard[y].every(cell => cell !== null)) {
+                linesCleared++;
+            }
+        }
+        
+        return linesCleared;
+    }
+    
+    // Override the start game method to enable demo mode if active
+    startGame() {
+        // Reset the game state
+        this.isGameOver = false;
+        this.isPaused = false;
+        this.score = 0;
+        this.level = 1;
+        this.lines = 0;
+        this.speed = 1000;
+        this.demoTargetMove = null; // Reset the demo target move
+        
+        // Update the UI
+        this.updateStats();
+        
+        // Clear the board
+        this.board.grid = Array(20).fill().map(() => Array(10).fill(null));
+        
+        // Create the first piece
+        this.createNewPiece();
+        
+        // Start the game loop
+        this.startGameLoop();
+        
+        // Mark the game as running
+        this.isRunning = true;
+        
+        // Start demo mode if enabled
+        if (this.isDemoMode) {
+            this.startDemoMode();
+        }
     }
 }
 
