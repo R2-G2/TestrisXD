@@ -37,3 +37,9 @@
 - Include clear, concise comments
 - Organize code into logical modules
 - Follow modern JavaScript practices 
+
+# Version Control Rules
+- Only commit and push changes when explicitly requested
+- When committing, include a short summary of the changes
+- Keep commits focused on specific features or fixes
+- Maintain clean commit history 
