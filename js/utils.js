@@ -109,4 +109,49 @@ function drawGhostBlock(ctx, x, y, color, canvasWidth, canvasHeight) {
     
     // Reset transparency
     ctx.globalAlpha = 1.0;
-} 
+}
+
+// Theme Management code moved to index.html
+// function initThemeToggle() {
+//     const themeToggle = document.getElementById('theme-toggle');
+//     
+//     // Check if the element exists
+//     if (!themeToggle) {
+//         // If called before DOM is fully loaded, try again after a short delay
+//         console.log('Theme toggle element not found, will retry');
+//         setTimeout(initThemeToggle, 100);
+//         return;
+//     }
+//     
+//     console.log('Initializing theme toggle');
+//     
+//     // Check for saved theme preference or respect OS preference
+//     const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+//     const savedTheme = localStorage.getItem('theme');
+//     
+//     // Apply theme based on saved preference or OS preference
+//     if (savedTheme === 'dark' || (savedTheme === null && prefersDarkMode)) {
+//         document.body.classList.add('dark-mode');
+//         themeToggle.checked = true;
+//     }
+//     
+//     // Add event listener for toggle changes
+//     themeToggle.addEventListener('change', function() {
+//         console.log('Theme toggle changed to:', this.checked);
+//         if (this.checked) {
+//             document.body.classList.add('dark-mode');
+//             localStorage.setItem('theme', 'dark');
+//         } else {
+//             document.body.classList.remove('dark-mode');
+//             localStorage.setItem('theme', 'light');
+//         }
+//     });
+// }
+// 
+// // Make sure to run only after the DOM is fully loaded
+// if (document.readyState === 'loading') {
+//     document.addEventListener('DOMContentLoaded', initThemeToggle);
+// } else {
+//     // If DOMContentLoaded has already fired, run immediately
+//     initThemeToggle();
+// } 

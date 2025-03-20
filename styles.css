@@ -5,9 +5,27 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Light theme variables */
+    --bg-color: #f0f0f0;
+    --container-bg: white;
+    --panel-bg: white;
+    --text-color: #333;
+    --header-bg: #2c3e50;
+    --header-text: white;
+    --border-color: #eee;
+    --game-area-bg: #f8f9fa;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --button-start-bg: #4CAF50;
+    --button-pause-bg: #2196F3;
+    --button-stop-bg: #f44336;
+    --button-text: white;
+    --option-text: #555;
+}
+
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f0f0f0;
+    background-color: var(--bg-color);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -15,30 +33,33 @@ body {
     padding: 0;
     min-height: 100vh;
     overflow: hidden;
+    transition: background-color 0.3s ease;
 }
 
 .game-container {
-    background-color: white;
+    background-color: var(--container-bg);
     border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 20px var(--shadow-color);
     overflow: hidden;
     width: 95%;
     max-width: 1200px;
     display: flex;
     flex-direction: column;
     height: 90vh;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Game Header */
 .game-header {
     padding: 8px;
-    background-color: #2c3e50;
-    color: white;
+    background-color: var(--header-bg);
+    color: var(--header-text);
     border-bottom: 1px solid #34495e;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
+    transition: background-color 0.3s ease;
 }
 
 /* Game Title */
@@ -70,9 +91,10 @@ body {
     display: flex;
     padding: 5px 15px;
     flex: 1;
-    background-color: #f8f9fa;
+    background-color: var(--game-area-bg);
     overflow: hidden;
     gap: 10px;
+    transition: background-color 0.3s ease;
 }
 
 /* Side Panel */
@@ -84,19 +106,21 @@ body {
 }
 
 .panel-section {
-    background-color: white;
+    background-color: var(--panel-bg);
     border-radius: 8px;
     padding: 15px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .panel-section h3 {
     margin-bottom: 12px;
-    color: #333;
+    color: var(--text-color);
     font-size: 18px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
     padding-bottom: 8px;
     text-align: center;
+    transition: color 0.3s ease, border-color 0.3s ease;
 }
 
 .next-piece-section {
@@ -143,7 +167,8 @@ body {
 
 .controls-list li {
     margin: 10px 0;
-    color: #555;
+    color: var(--option-text);
+    transition: color 0.3s ease;
 }
 
 /* Play Area */
@@ -214,6 +239,102 @@ body {
     gap: 15px;
 }
 
+/* Options Section Styles */
+.options-section {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Option item with toggle switch */
+.option-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+    padding: 5px 0;
+}
+
+.option-item label {
+    color: var(--option-text);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    padding-right: 10px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+/* Hide default checkbox */
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Create slider */
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+/* Create slider thumb */
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+/* Toggle state */
+input:checked + .toggle-slider {
+    background-color: #2196F3;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* Dark Mode Classes */
+body.dark-mode {
+    --bg-color: #121212;
+    --container-bg: #1e1e1e;
+    --panel-bg: #2d2d2d;
+    --text-color: #e0e0e0;
+    --header-bg: #1a1a2e;
+    --header-text: #f0f0f0;
+    --border-color: #444;
+    --game-area-bg: #252525;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --option-text: #bbb;
+}
+
+/* Game board backgrounds should remain unchanged */
+.dark-mode .game-board {
+    background-color: #111;
+}
+
+.dark-mode .next-piece-display {
+    background-color: #111;
+}
+
 /* Game Buttons */
 button {
     padding: 10px 20px;
@@ -223,11 +344,11 @@ button {
     font-size: 16px;
     font-weight: bold;
     transition: background-color 0.2s;
+    color: var(--button-text);
 }
 
 #start-button {
-    background-color: #4CAF50;
-    color: white;
+    background-color: var(--button-start-bg);
 }
 
 #start-button:hover {
@@ -235,8 +356,7 @@ button {
 }
 
 #pause-button {
-    background-color: #2196F3;
-    color: white;
+    background-color: var(--button-pause-bg);
 }
 
 #pause-button:hover {
@@ -244,8 +364,7 @@ button {
 }
 
 #stop-button {
-    background-color: #f44336;
-    color: white;
+    background-color: var(--button-stop-bg);
 }
 
 #stop-button:hover {

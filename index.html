@@ -35,6 +35,16 @@
                         </div>
                     </div>
                 </div>
+                <div class="panel-section options-section">
+                    <h3>Options</h3>
+                    <div class="option-item">
+                        <label for="theme-toggle">Dark Mode</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
                 <div class="panel-section controls-section">
                     <h3>Controls</h3>
                     <ul class="controls-list">
@@ -74,5 +84,48 @@
     <script src="js/board.js"></script>
     <script src="js/controls.js"></script>
     <script src="js/game.js"></script>
+    <script>
+        // Handle theme toggle directly in the page
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                // Reset any existing value/state first
+                themeToggle.checked = false;
+                document.body.classList.remove('dark-mode');
+                
+                // Direct click handler (simpler approach)
+                themeToggle.addEventListener('click', function() {
+                    if (this.checked) {
+                        document.body.classList.add('dark-mode');
+                        console.log('Dark mode enabled');
+                    } else {
+                        document.body.classList.remove('dark-mode');
+                        console.log('Dark mode disabled');
+                    }
+                });
+            }
+        });
+    </script>
+    <!-- Direct theme toggle initialization -->
+    <script>
+        // Execute immediately, not waiting for DOMContentLoaded
+        (function() {
+            setTimeout(function() {
+                const toggle = document.getElementById('theme-toggle');
+                if (toggle) {
+                    console.log('Direct toggle initialization');
+                    toggle.onclick = function() {
+                        if (this.checked) {
+                            document.body.classList.add('dark-mode');
+                            console.log('Dark mode ON');
+                        } else {
+                            document.body.classList.remove('dark-mode');
+                            console.log('Dark mode OFF');
+                        }
+                    };
+                }
+            }, 500); // Small delay to ensure everything is loaded
+        })();
+    </script>
 </body>
 </html> 

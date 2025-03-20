@@ -4,8 +4,29 @@
 
 class Game {
     constructor() {
-        // Canvas elements
-        this.canvases = document.querySelectorAll('.game-canvas');
+        // Initialize game elements
+        this.canvases = Array.from(document.querySelectorAll('.game-canvas'));
+        this.contexts = this.canvases.map(canvas => canvas.getContext('2d'));
+        
+        // Initialize next piece preview canvases
+        this.nextPieceCanvases = Array.from(document.querySelectorAll('.next-piece-display'));
+        
+        // Get UI elements for scores
+        this.scoreElement = document.getElementById('score');
+        this.levelElement = document.getElementById('level');
+        this.linesElement = document.getElementById('lines');
+        
+        // Listen for theme changes to re-render the canvases
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('change', () => {
+                // Re-render the canvases when theme changes
+                setTimeout(() => {
+                    this.renderAllCanvases();
+                    this.renderNextPiece();
+                }, 100); // Small delay to ensure theme change is applied
+            });
+        }
         
         // Board orientation - defines which boards have which mirroring settings
         // [0, 1, 2, 3] means boards are in original position
@@ -250,6 +271,9 @@ class Game {
         const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
         const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
         
+        // Use circles for mirrored boards, squares for unmirrored
+        const useCircle = isHorizontalMirrored || isVerticalMirrored;
+        
         // Clear canvas
         ctx.clearRect(0, 0, width, height);
         
@@ -291,9 +315,20 @@ class Game {
                 const displayX = isHorizontalMirrored ? 9 - x : x;
                 const displayY = isVerticalMirrored ? 19 - y : y;
                 
-                const blockType = this.board.grid[y][x];
-                if (blockType) {
-                    this.drawBlock(ctx, displayX, displayY, COLORS[blockType], cellWidth, cellHeight);
+                const block = this.board.grid[y][x];
+                if (block) {
+                    // Handle both old format (string) and new format (object)
+                    const blockType = typeof block === 'string' ? block : block.type;
+                    
+                    this.drawBlock(
+                        ctx, 
+                        displayX, 
+                        displayY, 
+                        COLORS[blockType], 
+                        cellWidth, 
+                        cellHeight,
+                        useCircle
+                    );
                 }
             }
         }
@@ -309,7 +344,7 @@ class Game {
                     const displayX = isHorizontalMirrored ? 9 - coord.x : coord.x;
                     const displayY = isVerticalMirrored ? 19 - coord.y : coord.y;
                     
-                    this.drawGhostBlock(ctx, displayX, displayY, COLORS[this.currentPiece.type], cellWidth, cellHeight);
+                    this.drawGhostBlock(ctx, displayX, displayY, COLORS[this.currentPiece.type], cellWidth, cellHeight, useCircle);
                 }
             });
         }
@@ -317,23 +352,87 @@ class Game {
         // Draw current piece
         if (this.currentPiece) {
             const coordinates = this.currentPiece.getAbsoluteCoordinates();
+            
             coordinates.forEach(coord => {
                 if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
                     // Apply mirroring to coordinates
                     const displayX = isHorizontalMirrored ? 9 - coord.x : coord.x;
                     const displayY = isVerticalMirrored ? 19 - coord.y : coord.y;
                     
-                    this.drawBlock(ctx, displayX, displayY, COLORS[this.currentPiece.type], cellWidth, cellHeight);
+                    this.drawBlock(
+                        ctx, 
+                        displayX, 
+                        displayY, 
+                        COLORS[this.currentPiece.type], 
+                        cellWidth, 
+                        cellHeight,
+                        useCircle
+                    );
                 }
             });
         }
     }
     
     // Draw a block at a specific grid position
-    drawBlock(ctx, x, y, color, cellWidth, cellHeight) {
+    drawBlock(ctx, x, y, color, cellWidth, cellHeight, useCircle) {
         const xPos = x * cellWidth;
         const yPos = y * cellHeight;
         
+        if (useCircle) {
+            // Calculate circle parameters
+            const radius = Math.min(cellWidth, cellHeight) / 2;
+            const centerX = xPos + cellWidth / 2;
+            const centerY = yPos + cellHeight / 2;
+            
+            // Draw main circle
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Create radial gradient for 3D effect
+            const gradient = ctx.createRadialGradient(
+                centerX - radius * 0.2, centerY - radius * 0.2, 0,
+                centerX, centerY, radius
+            );
+            
+            gradient.addColorStop(0, this.shadeColor(color, 20));  // Lighter center
+            gradient.addColorStop(0.7, color);                     // Original color
+            gradient.addColorStop(1, this.shadeColor(color, -20)); // Darker edge
+            
+            // Draw 3D circle with gradient
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add top-left highlight (similar to squares)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0.9, Math.PI * 1.8, false);
+            ctx.lineTo(centerX, centerY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add bottom-right shadow (similar to squares)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0, Math.PI * 0.8, false);
+            ctx.lineTo(centerX, centerY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add a subtle border
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            return; // Exit early
+        }
+        
+        // Draw square block (standard behavior for board 1)
         // Draw the main block
         ctx.fillStyle = color;
         ctx.fillRect(xPos, yPos, cellWidth, cellHeight);
@@ -426,6 +525,9 @@ class Game {
         if (this.currentPiece && !this.isGameOver && !this.isPaused) {
             const moved = this.currentPiece.moveDown(this.board);
             if (moved) {
+                // Award 1 point for manually moving down
+                this.score += 1;
+                this.updateStats();
                 this.renderAllCanvases();
             } else {
                 this.settlePiece();
@@ -446,7 +548,17 @@ class Game {
     // Hard drop the piece
     hardDrop() {
         if (this.currentPiece && !this.isGameOver && !this.isPaused) {
-            while (this.currentPiece.moveDown(this.board)) {}
+            let cellsMoved = 0;
+            
+            // Count how many cells the piece drops
+            while (this.currentPiece.moveDown(this.board)) {
+                cellsMoved++;
+            }
+            
+            // Award 3 points per cell dropped
+            this.score += cellsMoved * 3;
+            this.updateStats();
+            
             this.settlePiece();
         }
     }
@@ -455,8 +567,10 @@ class Game {
     settlePiece() {
         // Add the piece to the board
         const coordinates = this.currentPiece.getAbsoluteCoordinates();
+        
         coordinates.forEach(coord => {
             if (coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10) {
+                // Store the piece type in the grid
                 this.board.grid[coord.y][coord.x] = this.currentPiece.type;
             }
         });
@@ -525,9 +639,12 @@ class Game {
             const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
             const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
             
-            // Get the exact block size from the game board for consistency
-            const gameCanvas = this.canvases[0];
-            const blockSize = Math.floor(gameCanvas.width / 10) / 2; // Smaller blocks for preview
+            // Use circles for mirrored boards, squares for unmirrored
+            const useCircle = isHorizontalMirrored || isVerticalMirrored;
+            
+            // Get the exact block size from the game board
+            const gameCanvas = this.canvases[index]; // Get the corresponding game canvas
+            const gameBlockSize = Math.floor(gameCanvas.width / 10); // Full size game block
             
             // Ensure canvas dimensions are set properly
             canvas.width = canvas.offsetWidth;
@@ -557,6 +674,18 @@ class Game {
             // Calculate piece dimensions
             const pieceWidth = maxX - minX + 1;
             const pieceHeight = maxY - minY + 1;
+            
+            // Determine the preview block size to match the game board size ratio
+            // Calculate a scale factor based on available space
+            const maxPossibleBlockWidth = canvas.width / pieceWidth;
+            const maxPossibleBlockHeight = canvas.height / pieceHeight;
+            
+            // Choose the smaller dimension to ensure it fits
+            const blockSize = Math.min(
+                maxPossibleBlockWidth * 0.7, // 70% of max width
+                maxPossibleBlockHeight * 0.7, // 70% of max height
+                gameBlockSize * 0.9  // 90% of game block size
+            );
             
             // Calculate total piece size in pixels
             const totalWidth = pieceWidth * blockSize;
@@ -591,46 +720,94 @@ class Game {
                 // Draw the block with the same effect as the main blocks
                 const color = COLORS[this.nextPiece.type];
                 
-                // Draw the main block
-                ctx.fillStyle = color;
-                ctx.fillRect(x, y, blockSize, blockSize);
-                
-                // Calculate highlight size proportional to block size
-                const highlightSize = Math.max(1, Math.ceil(blockSize / 10));
-                
-                // Draw diagonal cut (divide the block diagonally)
-                // First triangle - bottom-left (darker)
-                ctx.fillStyle = this.shadeColor(color, -10);
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + blockSize, y + blockSize);
-                ctx.lineTo(x, y + blockSize);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Second triangle - top-right (lighter)
-                ctx.fillStyle = this.shadeColor(color, 15);
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + blockSize, y);
-                ctx.lineTo(x + blockSize, y + blockSize);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Draw strong highlight on top and left (3D effect)
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.fillRect(x, y, blockSize, highlightSize);
-                ctx.fillRect(x, y, highlightSize, blockSize);
-                
-                // Draw strong shadow on bottom and right (3D effect)
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-                ctx.fillRect(x, y + blockSize - highlightSize, blockSize, highlightSize);
-                ctx.fillRect(x + blockSize - highlightSize, y, highlightSize, blockSize);
-                
-                // Add block border
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, y, blockSize, blockSize);
+                if (useCircle) {
+                    // Draw circle instead of square
+                    // Calculate circle parameters
+                    const radius = blockSize / 2;
+                    const centerX = x + radius;
+                    const centerY = y + radius;
+                    
+                    // Create radial gradient for 3D effect
+                    const gradient = ctx.createRadialGradient(
+                        centerX - radius * 0.2, centerY - radius * 0.2, 0,
+                        centerX, centerY, radius
+                    );
+                    
+                    gradient.addColorStop(0, this.shadeColor(color, 20));  // Lighter center
+                    gradient.addColorStop(0.7, color);                      // Original color
+                    gradient.addColorStop(1, this.shadeColor(color, -20));  // Darker edge
+                    
+                    // Draw circle with gradient
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add top-left highlight (similar to squares)
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0.9, Math.PI * 1.8, false);
+                    ctx.lineTo(centerX, centerY);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Add bottom-right shadow (similar to squares)
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0, Math.PI * 0.8, false);
+                    ctx.lineTo(centerX, centerY);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Add a subtle border
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    // Draw regular square block
+                    // Draw the main block
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, blockSize, blockSize);
+                    
+                    // Calculate highlight size proportional to block size
+                    const highlightSize = Math.max(1, Math.ceil(blockSize / 10));
+                    
+                    // Draw diagonal cut (divide the block diagonally)
+                    // First triangle - bottom-left (darker)
+                    ctx.fillStyle = this.shadeColor(color, -10);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + blockSize, y + blockSize);
+                    ctx.lineTo(x, y + blockSize);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Second triangle - top-right (lighter)
+                    ctx.fillStyle = this.shadeColor(color, 15);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + blockSize, y);
+                    ctx.lineTo(x + blockSize, y + blockSize);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Draw strong highlight on top and left (3D effect)
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillRect(x, y, blockSize, highlightSize);
+                    ctx.fillRect(x, y, highlightSize, blockSize);
+                    
+                    // Draw strong shadow on bottom and right (3D effect)
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                    ctx.fillRect(x, y + blockSize - highlightSize, blockSize, highlightSize);
+                    ctx.fillRect(x + blockSize - highlightSize, y, highlightSize, blockSize);
+                    
+                    // Add block border
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, blockSize, blockSize);
+                }
             });
         });
     }
@@ -639,14 +816,14 @@ class Game {
     updateScore(linesCleared) {
         if (linesCleared === 0) return;
         
-        // Add points based on lines cleared and level
-        // Scoring follows classic Tetris rules: 40, 100, 300, 1200 for 1, 2, 3, 4 lines
+        // Award points based on lines cleared and level
+        // New scoring: 13, 42, 666, 1337 for 1, 2, 3, 4 lines (multiplied by level)
         let points = 0;
         switch (linesCleared) {
-            case 1: points = 40 * this.level; break;
-            case 2: points = 100 * this.level; break;
-            case 3: points = 300 * this.level; break;
-            case 4: points = 1200 * this.level; break;
+            case 1: points = 13 * this.level; break;
+            case 2: points = 42 * this.level; break;
+            case 3: points = 666 * this.level; break;
+            case 4: points = 1337 * this.level; break;
         }
         
         this.score += points;
@@ -676,10 +853,17 @@ class Game {
         // Game is over if any block in the top row is filled
         // or if the new piece collides immediately
         if (this.board.grid[0].some(cell => cell !== null) || 
-            this.currentPiece.getAbsoluteCoordinates().some(coord => 
-                coord.y >= 0 && coord.y < 20 && coord.x >= 0 && coord.x < 10 &&
-                this.board.grid[coord.y][coord.x] !== null)) {
-            this.gameOver();
+            this.currentPiece.hasCollision(this.board)) {
+            
+            // Game is over
+            this.isGameOver = true;
+            
+            // Stop the game loop
+            clearInterval(this.timer);
+            this.timer = null;
+            
+            // Display "Game Over" message
+            alert("Game Over! Your score: " + this.score);
         }
     }
     
@@ -860,14 +1044,64 @@ class Game {
     }
     
     // Draw a ghost block (transparent version of regular block)
-    drawGhostBlock(ctx, x, y, color, cellWidth, cellHeight) {
+    drawGhostBlock(ctx, x, y, color, cellWidth, cellHeight, useCircle) {
         const xPos = x * cellWidth;
         const yPos = y * cellHeight;
         
         // Set transparency to 25%
         ctx.globalAlpha = 0.25;
         
-        // Draw the main block 
+        if (useCircle) {
+            // Calculate circle parameters
+            const radius = Math.min(cellWidth, cellHeight) / 2;
+            const centerX = xPos + cellWidth / 2;
+            const centerY = yPos + cellHeight / 2;
+            
+            // Create radial gradient for 3D effect
+            const gradient = ctx.createRadialGradient(
+                centerX - radius * 0.2, centerY - radius * 0.2, 0,
+                centerX, centerY, radius
+            );
+            
+            gradient.addColorStop(0, this.shadeColor(color, 20));  // Lighter center
+            gradient.addColorStop(0.7, color);                     // Original color
+            gradient.addColorStop(1, this.shadeColor(color, -20)); // Darker edge
+            
+            // Draw 3D circle with gradient
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add top-left highlight (similar to squares)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0.9, Math.PI * 1.8, false);
+            ctx.lineTo(centerX, centerY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add bottom-right shadow (similar to squares)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0, Math.PI * 0.8, false);
+            ctx.lineTo(centerX, centerY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add a subtle border
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Reset transparency
+            ctx.globalAlpha = 1.0;
+            return; // Exit early
+        }
+        
+        // Draw the main block (for board 1)
         ctx.fillStyle = color;
         ctx.fillRect(xPos, yPos, cellWidth, cellHeight);
         

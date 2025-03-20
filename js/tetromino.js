@@ -70,6 +70,9 @@ class Tetromino {
         this.center = JSON.parse(JSON.stringify(tetromino.center));
         this.type = tetromino.type;
         
+        // Track rotation state 
+        this.rotationState = 0;
+        
         // Initial position in the center of the board, at the top
         this.x = 4; // Center position
         this.y = 0; // Top position
@@ -87,8 +90,16 @@ class Tetromino {
     rotate(board, clockwise = true) {
         // Create a copy of the current blocks
         const originalBlocks = JSON.parse(JSON.stringify(this.blocks));
+        const originalRotationState = this.rotationState;
         
-        // Rotate the blocks
+        // For 'O' tetromino, no need to rotate (symmetrical)
+        if (this.type === 'o') {
+            // Just increment rotation state for consistency
+            this.rotationState = (this.rotationState + 1) % 4;
+            return true; // Always successful for 'O' piece
+        }
+        
+        // For other tetrominoes, rotate normally
         this.blocks = this.blocks.map(block => {
             // Translate point back to origin
             const x = block.x - this.center.x;
@@ -111,10 +122,14 @@ class Tetromino {
             };
         });
         
+        // Increment rotation state (0-3)
+        this.rotationState = (this.rotationState + 1) % 4;
+        
         // Check if the rotation is valid
         if (this.hasCollision(board)) {
             // If not valid, revert to the original position
             this.blocks = originalBlocks;
+            this.rotationState = originalRotationState;
             return false;
         }
         
@@ -137,7 +152,8 @@ class Tetromino {
             }
             
             // Check if the block collides with a settled block
-            return board.grid[coord.y][coord.x] !== null;
+            const blockAtPosition = board.grid[coord.y][coord.x];
+            return blockAtPosition !== null;
         });
     }
     
