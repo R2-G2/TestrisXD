@@ -16,6 +16,14 @@ class Game {
         this.levelElement = document.getElementById('level');
         this.linesElement = document.getElementById('lines');
         
+        // Initialize tetromino statistics counters
+        this.tetrominoStats = {
+            i: 0, j: 0, l: 0, o: 0, s: 0, t: 0, z: 0
+        };
+        
+        // Track forced tetromino type for demo mode
+        this.forcedTetrominoType = null;
+        
         // Listen for theme changes to re-render the canvases
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
@@ -52,6 +60,9 @@ class Game {
         this.currentPiece = null;
         this.nextPiece = new Tetromino();
         
+        // Update statistics for the initial piece
+        this.updateTetrominoStats(this.nextPiece.type);
+        
         // Game state
         this.isGameOver = false;
         this.isPaused = false;
@@ -60,6 +71,7 @@ class Game {
         this.demoTargetMove = null; // Store the target move for AI
         this.demoAllowNaturalFall = true; // Allow blocks to fall naturally for a while
         this.demoMinimumFallDistance = 6; // Reduced from 8 to make the AI drop earlier
+        this.demoSpeed = 500; // Default AI move speed in ms
         this.score = 0;
         this.level = 1;
         this.lines = 0;
@@ -171,6 +183,9 @@ class Game {
     
     // Initialize game elements
     init() {
+        // Create a global reference to the game instance
+        window.game = this;
+        
         // Create the first piece
         this.nextPiece = new Tetromino();
         
@@ -181,6 +196,9 @@ class Game {
         this.level = 1;
         this.lines = 0;
         this.updateStats();
+        
+        // Reset tetromino statistics
+        this.resetTetrominoStats();
         
         // Initialize the boards
         this.board = {
@@ -631,8 +649,15 @@ class Game {
         // Move the next piece to current
         this.currentPiece = this.nextPiece;
         
-        // Create a new next piece
-        this.nextPiece = new Tetromino();
+        // Create a new next piece - use forced type if set in demo mode
+        if (this.isDemoMode && this.forcedTetrominoType) {
+            this.nextPiece = new Tetromino(this.forcedTetrominoType.toUpperCase());
+        } else {
+            this.nextPiece = new Tetromino();
+        }
+        
+        // Update statistics for the new piece
+        this.updateTetrominoStats(this.nextPiece.type);
         
         // Reset the demo target move for the AI if in demo mode
         if (this.isDemoMode) {
@@ -641,6 +666,34 @@ class Game {
         
         // Render the next piece preview
         this.renderNextPiece();
+    }
+    
+    // Update tetromino statistics
+    updateTetrominoStats(type) {
+        // Increment the counter for this type
+        if (this.tetrominoStats.hasOwnProperty(type)) {
+            this.tetrominoStats[type]++;
+            
+            // Update the display
+            const countElement = document.getElementById(`${type}-count`);
+            if (countElement) {
+                countElement.textContent = this.tetrominoStats[type];
+            }
+        }
+    }
+    
+    // Reset tetromino statistics
+    resetTetrominoStats() {
+        // Reset all counters to zero
+        Object.keys(this.tetrominoStats).forEach(type => {
+            this.tetrominoStats[type] = 0;
+            
+            // Update the display
+            const countElement = document.getElementById(`${type}-count`);
+            if (countElement) {
+                countElement.textContent = '0';
+            }
+        });
     }
     
     // Render the next piece previews
@@ -983,6 +1036,12 @@ class Game {
         this.isRunning = false;
         this.isPaused = false;
         
+        // Reset forced tetromino type
+        this.forcedTetrominoType = null;
+        
+        // Reset tetromino statistics
+        this.resetTetrominoStats();
+        
         // Update pause button text
         const pauseButton = document.getElementById('pause-button');
         if (pauseButton) {
@@ -1188,41 +1247,142 @@ class Game {
     // Toggle demo mode on/off
     toggleDemoMode(isActive) {
         this.isDemoMode = isActive;
-        console.log('Demo mode:', isActive ? 'ON' : 'OFF');
         
+        // Add or remove demo-mode-active class to the document body
         if (isActive) {
-            // Start demo mode if the game is running
-            if (this.isRunning && !this.isPaused && !this.isGameOver) {
-                this.startDemoMode();
-            }
+            document.body.classList.add('demo-mode-active');
+            console.log('Demo mode activated');
+            this.setupTetrominoSelectors();
+            this.startDemoMode();
         } else {
-            // Stop demo mode
+            document.body.classList.remove('demo-mode-active');
+            console.log('Demo mode deactivated');
+            this.removeTetrominoSelectors();
+            this.forcedTetrominoType = null; // Reset forced type when disabling demo mode
             this.stopDemoMode();
+        }
+    }
+    
+    // Setup event listeners for tetromino type selection in demo mode
+    setupTetrominoSelectors() {
+        const statItems = document.querySelectorAll('.stat-item');
+        
+        statItems.forEach(item => {
+            const type = item.getAttribute('data-type');
+            const preview = item.querySelector('.tetromino-preview');
+            
+            if (preview) {
+                // Store a reference to the bound function so we can remove it later
+                preview._clickHandler = () => this.setNextTetrominoType(type);
+                preview.addEventListener('click', preview._clickHandler);
+            }
+        });
+    }
+    
+    // Remove event listeners for tetromino type selection
+    removeTetrominoSelectors() {
+        const statItems = document.querySelectorAll('.stat-item');
+        
+        statItems.forEach(item => {
+            const preview = item.querySelector('.tetromino-preview');
+            
+            if (preview && preview._clickHandler) {
+                preview.removeEventListener('click', preview._clickHandler);
+                preview.classList.remove('selected');
+            }
+        });
+    }
+    
+    // Set the next tetromino type when clicked in demo mode
+    setNextTetrominoType(type) {
+        if (!this.isDemoMode) return;
+        
+        // Toggle the forced type if clicked again
+        if (this.forcedTetrominoType === type) {
+            console.log(`Disabling forced tetromino type`);
+            this.forcedTetrominoType = null;
+            
+            // Remove selected class from all previews
+            document.querySelectorAll('.tetromino-preview').forEach(preview => {
+                preview.classList.remove('selected');
+            });
+            
+            // Create a random next piece
+            this.nextPiece = new Tetromino();
+        } else {
+            console.log(`Setting forced tetromino type to: ${type}`);
+            this.forcedTetrominoType = type;
+            
+            // Remove selected class from all previews
+            document.querySelectorAll('.tetromino-preview').forEach(preview => {
+                preview.classList.remove('selected');
+            });
+            
+            // Add selected class to the clicked preview
+            const selectedPreview = document.querySelector(`.stat-item[data-type="${type}"] .tetromino-preview`);
+            if (selectedPreview) {
+                selectedPreview.classList.add('selected');
+            }
+            
+            // Create a new nextPiece of the specified type
+            this.nextPiece = new Tetromino(type.toUpperCase());
+        }
+        
+        // Render the next piece preview
+        this.renderNextPiece();
+    }
+    
+    // Set the speed of the AI in demo mode
+    setDemoSpeed(speed) {
+        // Speed is a value from 1-10, where 10 is fastest
+        // Use a more dramatic curve for higher speeds (8-10)
+        const minDelay = 5;     // Fastest: 5ms (extremely fast)
+        const maxDelay = 3500;  // Slowest: 3500ms (very slow)
+        
+        // For faster speeds (8-10), use a different scaling
+        if (speed >= 8) {
+            // For speeds 8-10, use a linear scale between 80ms and 5ms
+            // This makes the fastest settings dramatically faster
+            const fastSpeedRange = 10 - 8; // 3 steps (8, 9, 10)
+            const position = speed - 8;    // 0, 1, or 2
+            const percentage = position / fastSpeedRange;
+            this.demoSpeed = Math.round(80 - percentage * 75);
+        } else {
+            // For speeds 1-7, use exponential scaling
+            // Normalize the speed to a 0-1 range (inverted so higher = faster)
+            const normalizedSpeed = (8 - speed) / 7;
+            
+            // Apply exponential curve to make differences more noticeable
+            const exponentialFactor = 5; // Steeper curve for more dramatic slowness
+            const curvedSpeed = Math.pow(normalizedSpeed, exponentialFactor);
+            
+            // Calculate delay between 100ms and maxDelay
+            this.demoSpeed = Math.round(100 + (curvedSpeed * (maxDelay - 100)));
+        }
+        
+        console.log(`AI delay set to: ${this.demoSpeed}ms (speed level: ${speed})`);
+        
+        // If demo mode is active, adjust the timer
+        if (this.isDemoMode && this.demoTimer) {
+            clearTimeout(this.demoTimer);
+            this.makeDemoMove();
         }
     }
     
     // Start demo mode auto-play
     startDemoMode() {
-        if (!this.isDemoMode) return;
+        if (this.demoTimer) {
+            clearTimeout(this.demoTimer);
+        }
         
-        // Clear any existing demo timer
-        this.stopDemoMode();
-        
-        // Calculate the initial target move
-        this.demoTargetMove = null;
-        
-        // Start new demo timer for AI moves
-        this.demoTimer = setInterval(() => {
-            if (this.isRunning && !this.isPaused && !this.isGameOver && this.isDemoMode) {
-                this.makeDemoMove();
-            }
-        }, 750); // Even slower adjustment pace (750ms instead of 550ms)
+        // Make a demo move on a timer
+        this.makeDemoMove();
     }
     
     // Stop demo mode auto-play
     stopDemoMode() {
         if (this.demoTimer) {
-            clearInterval(this.demoTimer);
+            clearTimeout(this.demoTimer);
             this.demoTimer = null;
         }
         this.demoTargetMove = null;
@@ -1230,64 +1390,61 @@ class Game {
     
     // Make an intelligent move in demo mode
     makeDemoMove() {
-        if (!this.currentPiece || !this.isDemoMode) return;
+        if (!this.currentPiece || !this.isDemoMode || this.isGameOver || this.isPaused) return;
+        
+        // Clear any existing timer
+        if (this.demoTimer) {
+            clearTimeout(this.demoTimer);
+            this.demoTimer = null;
+        }
         
         // If we don't have a target move yet, calculate one and remember initial Y position
         if (!this.demoTargetMove) {
             this.demoTargetMove = this.findBestMove();
             this.demoTargetMove.initialY = this.currentPiece.y; // Remember starting position
             this.demoTargetMove.lastAdjustmentTime = Date.now(); // Track adjustment timing
-            return; // Wait one interval before making first adjustment
-        }
-        
-        // Check if we need to wait before next adjustment (forces pausing between adjustments)
-        if (this.demoTargetMove.lastAdjustmentTime && 
-            Date.now() - this.demoTargetMove.lastAdjustmentTime < 700) {
-            return; // Not enough time has passed since last adjustment (increased from 500ms)
-        }
-        
-        // If we have a target move, make one adjustment at a time
-        if (this.demoTargetMove) {
-            // First prioritize rotation
-            if (this.currentPiece.rotationState !== this.demoTargetMove.rotation) {
-                // Rotate once
-                this.rotatePiece();
-                this.demoTargetMove.lastAdjustmentTime = Date.now();
-                return; // Only do one adjustment per call
-            }
-            
-            // Then adjust horizontal position
-            if (this.currentPiece.x < this.demoTargetMove.x) {
-                // Move right once
-                this.movePieceRight();
-                this.demoTargetMove.lastAdjustmentTime = Date.now();
-                return; // Only do one adjustment per call
-            } else if (this.currentPiece.x > this.demoTargetMove.x) {
-                // Move left once
-                this.movePieceLeft();
-                this.demoTargetMove.lastAdjustmentTime = Date.now();
-                return; // Only do one adjustment per call
-            }
-            
-            // If we've reached the target position (rotation and x-coordinate)
-            if (this.currentPiece.rotationState === this.demoTargetMove.rotation && 
-                this.currentPiece.x === this.demoTargetMove.x) {
-                
-                // Check if the piece has fallen enough, comparing to initial Y
-                const fallDistance = this.currentPiece.y - this.demoTargetMove.initialY;
-                
-                if (fallDistance >= this.demoMinimumFallDistance) {
-                    // It has fallen enough, now hard drop
-                    this.hardDrop();
-                    // Reset the target move for the next piece
-                    this.demoTargetMove = null;
-                } else {
-                    // Let it fall naturally one more step
-                    // The game's update loop will handle this
-                    return;
+        } else {
+            // Check if we need to wait before next adjustment (forces pausing between adjustments)
+            if (this.demoTargetMove.lastAdjustmentTime && 
+                Date.now() - this.demoTargetMove.lastAdjustmentTime < 700) {
+                // Not enough time has passed since last adjustment (increased from 500ms)
+            } else {
+                // If we have a target move, make one adjustment at a time
+                // First prioritize rotation
+                if (this.currentPiece.rotationState !== this.demoTargetMove.rotation) {
+                    // Rotate once
+                    this.rotatePiece();
+                    this.demoTargetMove.lastAdjustmentTime = Date.now();
+                } else if (this.currentPiece.x < this.demoTargetMove.x) {
+                    // Move right once
+                    this.movePieceRight();
+                    this.demoTargetMove.lastAdjustmentTime = Date.now();
+                } else if (this.currentPiece.x > this.demoTargetMove.x) {
+                    // Move left once
+                    this.movePieceLeft();
+                    this.demoTargetMove.lastAdjustmentTime = Date.now();
+                } else if (this.currentPiece.rotationState === this.demoTargetMove.rotation && 
+                    this.currentPiece.x === this.demoTargetMove.x) {
+                    
+                    // Check if the piece has fallen enough, comparing to initial Y
+                    const fallDistance = this.currentPiece.y - this.demoTargetMove.initialY;
+                    
+                    if (fallDistance >= this.demoMinimumFallDistance) {
+                        // It has fallen enough, now hard drop
+                        this.hardDrop();
+                        // Reset the target move for the next piece
+                        this.demoTargetMove = null;
+                    }
                 }
             }
         }
+        
+        // Set up the next move with dynamic speed
+        this.demoTimer = setTimeout(() => {
+            if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                this.makeDemoMove();
+            }
+        }, this.demoSpeed || 500); // Use the demoSpeed property if available, default to 500ms
     }
     
     // Find the best move for the current piece
@@ -1585,6 +1742,9 @@ class Game {
         this.lines = 0;
         this.speed = 1000;
         this.demoTargetMove = null; // Reset the demo target move
+        
+        // Reset tetromino statistics
+        this.resetTetrominoStats();
         
         // Update the UI
         this.updateStats();

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TestrisXD</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="game-container">
@@ -63,6 +63,105 @@
                 </div>
             </div>
             <div class="side-panel right-panel">
+                <div class="panel-section stats-section">
+                    <h3>Statistics</h3>
+                    <ul class="stats-list">
+                        <li class="stat-item" data-type="i">
+                            <div class="tetromino-preview i-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">I-Block:</span>
+                            <span class="stat-value" id="i-count">0</span>
+                        </li>
+                        <li class="stat-item" data-type="j">
+                            <div class="tetromino-preview j-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-block"></div>
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">J-Block:</span>
+                            <span class="stat-value" id="j-count">0</span>
+                        </li>
+                        <li class="stat-item" data-type="l">
+                            <div class="tetromino-preview l-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">L-Block:</span>
+                            <span class="stat-value" id="l-count">0</span>
+                        </li>
+                        <li class="stat-item" data-type="o">
+                            <div class="tetromino-preview o-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">O-Block:</span>
+                            <span class="stat-value" id="o-count">0</span>
+                        </li>
+                        <li class="stat-item" data-type="s">
+                            <div class="tetromino-preview s-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-empty"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">S-Block:</span>
+                            <span class="stat-value" id="s-count">0</span>
+                        </li>
+                        <li class="stat-item" data-type="t">
+                            <div class="tetromino-preview t-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">T-Block:</span>
+                            <span class="stat-value" id="t-count">0</span>
+                        </li>
+                        <li class="stat-item" data-type="z">
+                            <div class="tetromino-preview z-preview">
+                                <div class="mini-grid">
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-empty"></div>
+                                    <div class="mini-block"></div>
+                                    <div class="mini-block"></div>
+                                </div>
+                            </div>
+                            <span class="stat-label">Z-Block:</span>
+                            <span class="stat-value" id="z-count">0</span>
+                        </li>
+                    </ul>
+                </div>
                 <div class="panel-section options-section">
                     <h3>Options</h3>
                     <div class="option-item">
@@ -79,6 +178,13 @@
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
+                    <div class="option-item slider-container">
+                        <label for="speed-slider">Demon Speed</label>
+                        <div class="slider-wrapper">
+                            <input type="range" id="speed-slider" min="1" max="10" value="5" step="1" class="speed-slider">
+                            <span class="slider-value" id="speed-value">5 - Medium</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -93,59 +199,6 @@
     <script src="js/board.js"></script>
     <script src="js/controls.js"></script>
     <script src="js/game.js"></script>
-    <script>
-        // Handle theme toggle directly in the page
-        document.addEventListener('DOMContentLoaded', function() {
-            const themeToggle = document.getElementById('theme-toggle');
-            if (themeToggle) {
-                // Reset any existing value/state first
-                themeToggle.checked = false;
-                document.body.classList.remove('dark-mode');
-                
-                // Direct click handler (simpler approach)
-                themeToggle.addEventListener('click', function() {
-                    if (this.checked) {
-                        document.body.classList.add('dark-mode');
-                        console.log('Dark mode enabled');
-                    } else {
-                        document.body.classList.remove('dark-mode');
-                        console.log('Dark mode disabled');
-                    }
-                });
-            }
-            
-            // Initialize demo toggle - simpler initialization here
-            const demoToggle = document.getElementById('demo-toggle');
-            if (demoToggle) {
-                demoToggle.checked = false;
-                
-                // Make sure it's initialized properly for the game class
-                demoToggle.addEventListener('click', function() {
-                    console.log('Demo mode toggled via UI:', this.checked);
-                });
-            }
-        });
-    </script>
-    <!-- Direct theme toggle initialization -->
-    <script>
-        // Execute immediately, not waiting for DOMContentLoaded
-        (function() {
-            setTimeout(function() {
-                const toggle = document.getElementById('theme-toggle');
-                if (toggle) {
-                    console.log('Direct toggle initialization');
-                    toggle.onclick = function() {
-                        if (this.checked) {
-                            document.body.classList.add('dark-mode');
-                            console.log('Dark mode ON');
-                        } else {
-                            document.body.classList.remove('dark-mode');
-                            console.log('Dark mode OFF');
-                        }
-                    };
-                }
-            }, 500); // Small delay to ensure everything is loaded
-        })();
-    </script>
+    <script src="js/theme.js"></script>
 </body>
 </html> 
