@@ -6,16 +6,20 @@
 - Uses Canvas for rendering game elements
 - Classic Tetris scoring system
 - Game consists of falling tetromino pieces that need to be arranged to create complete rows
+- Features special mirror modes with circle-shaped blocks
+- Includes explosion animations and particle effects when lines are cleared
+- Demo mode with AI player for automatic gameplay
 
 # File Structure
 - HTML: index.html (main game page)
 - CSS: styles.css (all styling)
 - JavaScript files in js/ directory:
-  - utils.js: Utility functions and drawing helpers
+  - utils.js: Utility functions, drawing helpers, and particle system
   - tetromino.js: Tetromino piece logic
   - board.js: Game board logic 
   - controls.js: User input handling
   - game.js: Main game logic
+  - theme.js: Theme settings (light/dark mode)
 
 # Key Components
 - Tetromino: A game piece composed of four blocks in different arrangements
@@ -23,13 +27,24 @@
 - Controls: Keyboard and button controls for game interaction
 - Game: Main game logic that ties everything together
 - Canvas: HTML5 Canvas elements for rendering the game board and next piece
+- ParticleSystem: Creates explosion effects when lines are cleared
+- Game Over Overlay: Modern UI for game over state with restart option
 
 # Game Mechanics
 - Tetrominoes fall from the top of the board
 - Player can move them left/right, rotate them, and speed up their fall
 - When a row is completely filled with blocks, it disappears and awards points
+- Clearing lines triggers explosion animations with screen shake effects
 - Game ends when blocks stack up to the top of the board
 - Levels increase as more lines are cleared, increasing game speed
+- The game features multiple board views with different mirror modes
+
+# Visual Effects
+- Explosion animations when lines are cleared
+- Particle effects that adjust based on number of lines cleared
+- Screen shake effect that varies in intensity
+- Shape-aware particles (circles or squares based on mirror mode)
+- Modern game over overlay instead of alert box
 
 # Coding Style
 - Use camelCase for variables and functions

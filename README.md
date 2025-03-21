@@ -22,6 +22,14 @@ A Tetris-like browser game built with HTML, CSS, and JavaScript using Canvas for
 - Level progression with increasing difficulty
 - Next piece preview
 - Responsive design
+- Unique mirror mode display with circular blocks
+- Demo mode with AI player
+- Visual effects:
+  - Explosion animations when clearing lines
+  - Scale-aware particle effects (bigger explosions for more lines cleared)
+  - Screen shake effects
+  - Shape-aware particles (circles/squares based on mirror mode)
+- Modern game over screen with restart option
 
 ## Project Structure
 
@@ -33,6 +41,7 @@ A Tetris-like browser game built with HTML, CSS, and JavaScript using Canvas for
   - `board.js` - Game board logic
   - `controls.js` - User input handling
   - `game.js` - Main game logic
+  - `theme.js` - Theme toggling logic
 
 ## Problems?
 

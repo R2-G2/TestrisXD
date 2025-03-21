@@ -1002,8 +1002,39 @@ class Game {
             clearInterval(this.timer);
             this.timer = null;
             
-            // Display "Game Over" message
-            alert("Game Over! Your score: " + this.score);
+            // Update final score display
+            document.getElementById('final-score').textContent = this.score;
+            document.getElementById('final-level').textContent = this.level;
+            document.getElementById('final-lines').textContent = this.lines;
+            
+            // Show game over overlay with animation
+            const overlay = document.getElementById('game-over-overlay');
+            
+            // First make sure the overlay is in the DOM
+            if (overlay) {
+                // Add the active class to trigger the CSS animations
+                setTimeout(() => {
+                    overlay.classList.add('active');
+                    
+                    // Add event listener to restart button
+                    const restartButton = document.getElementById('restart-button');
+                    if (restartButton) {
+                        restartButton.addEventListener('click', () => {
+                            // Hide the overlay
+                            overlay.classList.remove('active');
+                            
+                            // Wait for the animation to complete
+                            setTimeout(() => {
+                                // Start a new game
+                                this.startGame();
+                            }, 400);
+                        });
+                    }
+                }, 500); // Slight delay for dramatic effect
+            } else {
+                // Fallback to alert if overlay isn't found
+                alert("Game Over! Your score: " + this.score);
+            }
         }
     }
     
@@ -1776,6 +1807,12 @@ class Game {
     
     // Override the start game method to enable demo mode if active
     startGame() {
+        // Hide any game over overlay if visible
+        const overlay = document.getElementById('game-over-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+        
         // Reset the game state
         this.isGameOver = false;
         this.isPaused = false;
