@@ -52,6 +52,7 @@
 - Include clear, concise comments
 - Organize code into logical modules
 - Follow modern JavaScript practices 
+- Never use console.log statements in production code
 
 # Version Control Rules
 - Only commit and push changes when explicitly requested
