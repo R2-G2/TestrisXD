@@ -5,18 +5,61 @@
 
 // Initialize theme toggle and demo mode functionality
 document.addEventListener('DOMContentLoaded', function() {
+    initThemeBasedOnSystemPreference();
     initThemeToggle();
     initDemoToggle();
     initSpeedSlider();
 });
 
+// Check system preference for dark mode and apply it
+function initThemeBasedOnSystemPreference() {
+    const themeToggle = document.getElementById('theme-toggle');
+    
+    // Check if the system prefers dark mode
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // System prefers dark mode - enable it
+        document.body.classList.add('dark-mode');
+        if (themeToggle) {
+            themeToggle.checked = true;
+        }
+        console.log('Dark mode enabled based on system preference');
+    } else {
+        // System prefers light mode - ensure it's enabled
+        document.body.classList.remove('dark-mode');
+        if (themeToggle) {
+            themeToggle.checked = false;
+        }
+        console.log('Light mode enabled based on system preference');
+    }
+    
+    // Add listener for system preference changes
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)')
+            .addEventListener('change', event => {
+                if (event.matches) {
+                    // System switched to dark mode
+                    document.body.classList.add('dark-mode');
+                    if (themeToggle) {
+                        themeToggle.checked = true;
+                    }
+                    console.log('Dark mode enabled - system change detected');
+                } else {
+                    // System switched to light mode
+                    document.body.classList.remove('dark-mode');
+                    if (themeToggle) {
+                        themeToggle.checked = false;
+                    }
+                    console.log('Light mode enabled - system change detected');
+                }
+            });
+    }
+}
+
 // Initialize theme toggle
 function initThemeToggle() {
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
-        // Reset any existing value/state first
-        themeToggle.checked = false;
-        document.body.classList.remove('dark-mode');
+        // Don't reset the value here, as we want to preserve what was set by system preference
         
         // Add click handler for theme toggle
         themeToggle.addEventListener('click', function() {
@@ -133,6 +176,11 @@ function addLoadingClass(elementId) {
 
 // Execute immediately, not waiting for DOMContentLoaded
 (function() {
+    // Check for system preferences immediately
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark-mode');
+    }
+    
     // Backup init for theme toggle with small delay to ensure everything is loaded
     setTimeout(function() {
         const toggle = document.getElementById('theme-toggle');
