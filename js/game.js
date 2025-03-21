@@ -21,6 +21,11 @@ class Game {
             i: 0, j: 0, l: 0, o: 0, s: 0, t: 0, z: 0
         };
         
+        // Create explosion particle systems for each canvas
+        this.particleSystems = this.canvases.map(() => new ParticleSystem());
+        this.explosionActive = false;
+        this.screenShake = { active: false, intensity: 0, duration: 0, startTime: 0 };
+        
         // Track forced tetromino type for demo mode
         this.forcedTetrominoType = null;
         
@@ -181,73 +186,6 @@ class Game {
         }
     }
     
-    // Initialize game elements
-    init() {
-        // Create a global reference to the game instance
-        window.game = this;
-        
-        // Create the first piece
-        this.nextPiece = new Tetromino();
-        
-        // Reset game state
-        this.isGameOver = false;
-        this.isPaused = false;
-        this.score = 0;
-        this.level = 1;
-        this.lines = 0;
-        this.updateStats();
-        
-        // Reset tetromino statistics
-        this.resetTetrominoStats();
-        
-        // Initialize the boards
-        this.board = {
-            width: 10,
-            height: 20,
-            grid: Array(20).fill().map(() => Array(10).fill(null))
-        };
-        
-        // Reset board orientation
-        this.boardOrientation = [0, 1, 2, 3];
-        
-        // Redraw the grid on all game canvases
-        this.canvases.forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            drawGrid(ctx, canvas.width, canvas.height);
-        });
-    }
-    
-    // Start the game
-    start() {
-        // Initialize game elements
-        this.init();
-        
-        // Ensure we have a next piece
-        if (!this.nextPiece) {
-            this.nextPiece = new Tetromino();
-        }
-        
-        // Create a new piece and start the game loop
-        this.createNewPiece();
-        this.startGameLoop();
-        
-        // Update UI
-        const pauseButton = document.getElementById('pause-button');
-        const startButton = document.getElementById('start-button');
-        
-        if (pauseButton) {
-            pauseButton.textContent = 'Pause';
-        }
-        
-        if (startButton) {
-            startButton.textContent = 'Restart';
-        }
-        
-        // Render everything
-        this.renderAllCanvases();
-        this.renderNextPiece();
-    }
-    
     // Game loop - called at regular intervals based on level
     startGameLoop() {
         // Clear any existing timer
@@ -263,27 +201,72 @@ class Game {
     
     // Update game state
     update() {
-        // Skip if game is over or paused
         if (this.isGameOver || this.isPaused) return;
         
-        // Move the current piece down
-        const moved = this.currentPiece.moveDown(this.board);
-        
-        // If the piece couldn't move down, settle it and create a new one
-        if (!moved) {
-            this.settlePiece();
+        // If explosions are active, update them and skip other updates
+        if (this.explosionActive) {
+            // Update explosion animations
+            let anyActive = false;
+            this.contexts.forEach((ctx, index) => {
+                const isActive = this.particleSystems[index].update(
+                    ctx, 
+                    this.canvases[index].width, 
+                    this.canvases[index].height
+                );
+                if (isActive) anyActive = true;
+            });
+            
+            // If all explosion animations are done, we can continue
+            this.explosionActive = anyActive;
+            
+            // Don't update game state while explosions are active
+            return;
         }
         
-        // Render to all canvases
-        this.renderAllCanvases();
+        // Move the current piece down
+        if (this.currentPiece) {
+            const moved = this.currentPiece.moveDown(this.board);
+            
+            if (!moved) {
+                this.settlePiece();
+            }
+            
+            this.renderAllCanvases();
+        }
     }
     
     // Render the game state to all canvases
     renderAllCanvases() {
+        // Only render if not in the middle of explosion animation
+        if (this.explosionActive) return;
+        
         this.canvases.forEach((canvas, index) => {
             const ctx = canvas.getContext('2d');
+            
+            // Apply screen shake if active
+            ctx.save();
+            
+            if (this.screenShake.active) {
+                const elapsed = Date.now() - this.screenShake.startTime;
+                
+                if (elapsed < this.screenShake.duration) {
+                    // Calculate shake intensity based on remaining duration
+                    const remainingFactor = 1 - (elapsed / this.screenShake.duration);
+                    const shakeX = (Math.random() * 2 - 1) * this.screenShake.intensity * remainingFactor;
+                    const shakeY = (Math.random() * 2 - 1) * this.screenShake.intensity * remainingFactor;
+                    
+                    // Apply translation for shake effect
+                    ctx.translate(shakeX, shakeY);
+                } else {
+                    // End shake effect
+                    this.screenShake.active = false;
+                }
+            }
+            
             // Pass the canvas index to determine if mirroring is needed
             this.renderCanvas(ctx, canvas.width, canvas.height, index);
+            
+            ctx.restore();
         });
     }
     
@@ -609,45 +592,131 @@ class Game {
         // Check for completed lines
         const linesCleared = this.clearLines();
         
-        // Update score
-        this.updateScore(linesCleared);
-        
-        // Create a new piece
-        this.createNewPiece();
-        
-        // Check if the game is over
-        this.checkGameOver();
-        
-        // Render the board
-        this.renderAllCanvases();
+        // If no lines were cleared, continue immediately
+        if (linesCleared === 0) {
+            // Update score
+            this.updateScore(linesCleared);
+            
+            // Create a new piece
+            this.createNewPiece();
+            
+            // Check if the game is over
+            this.checkGameOver();
+            
+            // Render the board
+            this.renderAllCanvases();
+        }
+        // Otherwise, the clearing animation will handle the continuation
     }
     
     // Clear completed lines and return the number of lines cleared
     clearLines() {
         let linesCleared = 0;
+        let completedRows = [];
         
-        // Check each row from bottom to top
+        // First, identify completed rows
         for (let y = 19; y >= 0; y--) {
             // Check if the row is complete (all cells are filled)
             if (this.board.grid[y].every(cell => cell !== null)) {
-                // Remove this row and add a new empty row at the top
-                this.board.grid.splice(y, 1);
-                this.board.grid.unshift(Array(10).fill(null));
-                
-                linesCleared++;
-                
-                // Since we removed a row, we need to check the same y index again
-                y++;
+                completedRows.push(y);
             }
         }
         
-        return linesCleared;
+        // If there are completed rows, trigger explosion effect
+        if (completedRows.length > 0) {
+            // Set explosion state to active
+            this.explosionActive = true;
+            
+            // Calculate explosion scale based on number of rows cleared
+            // Base scale of 1.0 for a single row, up to 2.5 for 4 rows (Tetris)
+            const explosionScale = 1.0 + (completedRows.length - 1) * 0.5;
+            
+            // Trigger screen shake with intensity based on number of rows cleared
+            this.startScreenShake(6 + completedRows.length * 3, 800 + completedRows.length * 200); // Increased duration for more lines
+            
+            // Create explosion for each completed row
+            completedRows.forEach((rowY, index) => {
+                // Create explosion with slight delay between rows
+                setTimeout(() => {
+                    // Trigger explosions in all board views
+                    this.contexts.forEach((ctx, ctxIndex) => {
+                        // Get the mirroring orientation based on the board orientation
+                        const mirrorOrientation = this.boardOrientation[ctxIndex];
+                        
+                        // Determine mirroring based on the orientation value
+                        const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
+                        const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
+                        
+                        // Use circles for mirrored boards, squares for unmirrored
+                        const useCircle = isHorizontalMirrored || isVerticalMirrored;
+                        
+                        this.particleSystems[ctxIndex].createExplosion(
+                            ctx, 
+                            rowY, 
+                            this.canvases[ctxIndex].width, 
+                            this.canvases[ctxIndex].height,
+                            explosionScale, // Pass the explosion scale
+                            useCircle // Pass whether to use circles
+                        );
+                        
+                        // Add another small shake for each row explosion
+                        if (index > 0) {
+                            this.startScreenShake(3 * explosionScale, 300 * explosionScale); // Scale shake with explosion size
+                        }
+                    });
+                }, index * 250); // Increased from 150ms for more spacing between explosions
+            });
+            
+            // Wait for explosion animation before clearing lines - longer wait for bigger explosions
+            setTimeout(() => {
+                // Now actually clear the rows from bottom to top
+                for (let y = 19; y >= 0; y--) {
+                    // Check if the row is complete (all cells are filled)
+                    if (this.board.grid[y].every(cell => cell !== null)) {
+                        // Remove this row and add a new empty row at the top
+                        this.board.grid.splice(y, 1);
+                        this.board.grid.unshift(Array(10).fill(null));
+                        
+                        linesCleared++;
+                        
+                        // Since we removed a row, we need to check the same y index again
+                        y++;
+                    }
+                }
+                
+                // Update the game state after explosion
+                this.explosionActive = false;
+                this.updateScore(linesCleared);
+                
+                // Create new piece after explosion
+                this.createNewPiece();
+                
+                // Check if the game is over
+                this.checkGameOver();
+                
+                // Render the board
+                this.renderAllCanvases();
+                
+            }, 1500 + completedRows.length * 300); // Increase animation duration for more lines
+            
+            return completedRows.length; // Return number of lines cleared
+        }
+        
+        return 0; // No lines cleared
     }
     
     // Create a new piece
     createNewPiece() {
-        // Move the next piece to current
-        this.currentPiece = this.nextPiece;
+        // Don't create a new piece if explosion is in progress
+        if (this.explosionActive) return;
+        
+        // If this is the first piece, create it
+        if (!this.currentPiece) {
+            this.currentPiece = new Tetromino();
+        } else {
+            // Move the next piece to current
+            this.currentPiece = this.nextPiece;
+        }
         
         // Create a new next piece - use forced type if set in demo mode
         if (this.isDemoMode && this.forcedTetrominoType) {
@@ -935,33 +1004,6 @@ class Game {
             
             // Display "Game Over" message
             alert("Game Over! Your score: " + this.score);
-        }
-    }
-    
-    // Game over state
-    gameOver() {
-        this.isGameOver = true;
-        clearInterval(this.timer);
-        
-        // Alert game over with final score
-        setTimeout(() => {
-            alert(`Game Over! Your score: ${this.score}`);
-        }, 100);
-    }
-    
-    // Pause the game
-    pause() {
-        if (!this.isGameOver) {
-            this.isPaused = true;
-            clearInterval(this.timer);
-        }
-    }
-    
-    // Resume the game
-    resume() {
-        if (!this.isGameOver && this.isPaused) {
-            this.isPaused = false;
-            this.startGameLoop();
         }
     }
     
@@ -1765,6 +1807,16 @@ class Game {
         if (this.isDemoMode) {
             this.startDemoMode();
         }
+    }
+    
+    // Start a screen shake effect
+    startScreenShake(intensity, duration) {
+        this.screenShake = {
+            active: true,
+            intensity: intensity,
+            duration: duration,
+            startTime: Date.now()
+        };
     }
 }
 
