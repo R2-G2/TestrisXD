@@ -49,6 +49,14 @@ class Game {
             });
         }
         
+        // Initialize board rotation toggle
+        const rotateToggle = document.getElementById('rotate-toggle');
+        if (rotateToggle) {
+            this.allowBoardRotation = rotateToggle.checked; // Default to checked (enabled)
+        } else {
+            this.allowBoardRotation = true; // Default to true if toggle not found
+        }
+        
         // Board orientation - defines which boards have which mirroring settings
         // [0, 1, 2, 3] means boards are in original position
         // The value at each index represents which board's mirroring settings to use
@@ -1081,6 +1089,7 @@ class Game {
         const startButton = document.getElementById('start-button');
         const pauseButton = document.getElementById('pause-button');
         const stopButton = document.getElementById('stop-button');
+        const rotateToggle = document.getElementById('rotate-toggle');
         
         if (startButton) {
             startButton.addEventListener('click', () => {
@@ -1099,6 +1108,16 @@ class Game {
         if (stopButton) {
             stopButton.addEventListener('click', () => {
                 this.resetGame();
+                this.renderAllCanvases();
+            });
+        }
+        
+        if (rotateToggle) {
+            // Enable/disable board rotation
+            this.allowBoardRotation = rotateToggle.checked;
+            
+            rotateToggle.addEventListener('change', () => {
+                this.allowBoardRotation = rotateToggle.checked;
             });
         }
     }
@@ -1325,6 +1344,9 @@ class Game {
     
     // Rotate board orientation counter-clockwise
     rotateBoardsCounterClockwise() {
+        // Skip if board rotation is disabled
+        if (!this.allowBoardRotation) return;
+        
         // For counter-clockwise rotation in a 2x2 grid:
         // [0, 1,    [1, 3,
         //  2, 3] →   0, 2]
@@ -1341,6 +1363,9 @@ class Game {
     
     // Rotate board orientation clockwise
     rotateBoardsClockwise() {
+        // Skip if board rotation is disabled
+        if (!this.allowBoardRotation) return;
+        
         // For clockwise rotation in a 2x2 grid:
         // [0, 1,    [2, 0,
         //  2, 3] →   3, 1]
