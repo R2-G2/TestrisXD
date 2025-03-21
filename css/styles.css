@@ -855,4 +855,71 @@ button {
 .dark-mode .final-lines {
     background-color: #34495e;
     color: #ecf0f1;
+}
+
+/* Score Animation */
+@keyframes scorePopup {
+    0% {
+        transform: scale(1) translateY(0);
+        opacity: 0;
+    }
+    20% {
+        transform: scale(1.5) translateY(0);
+        opacity: 1;
+    }
+    80% {
+        transform: scale(1.5) translateY(-20px);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) translateY(-30px);
+        opacity: 0;
+    }
+}
+
+.score-popup {
+    position: absolute;
+    font-family: 'Press Start 2P', monospace, sans-serif;
+    color: gold;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+    font-weight: bold;
+    font-size: 18px;
+    z-index: 100;
+    pointer-events: none;
+    animation: scorePopup 1.5s ease-out forwards;
+    user-select: none;
+}
+
+/* Soft drop - use green from start button */
+.score-popup.soft-drop {
+    color: var(--button-start-bg); /* #4CAF50 - Green */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* Hard drop - use blue from pause button */
+.score-popup.hard-drop {
+    color: var(--button-pause-bg); /* #2196F3 - Blue */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* Line clear - use red from stop button */
+.score-popup.line-clear {
+    color: var(--button-stop-bg); /* #f44336 - Red */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.dark-mode .score-popup {
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.9);
+}
+
+.dark-mode .score-popup.soft-drop {
+    color: #4CAF50; /* Green */
+}
+
+.dark-mode .score-popup.hard-drop {
+    color: #2196F3; /* Blue */
+}
+
+.dark-mode .score-popup.line-clear {
+    color: #f44336; /* Red */
 } 

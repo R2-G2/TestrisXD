@@ -541,6 +541,8 @@ class Game {
             if (moved) {
                 // Award 1 point for manually moving down
                 this.score += 1;
+                // Create score popup for soft drop
+                this.createScorePopup(1, 'soft-drop');
                 this.updateStats();
                 this.renderAllCanvases();
             } else {
@@ -570,7 +572,10 @@ class Game {
             }
             
             // Award 3 points per cell dropped
-            this.score += cellsMoved * 3;
+            const points = cellsMoved * 3;
+            this.score += points;
+            // Create score popup for hard drop
+            this.createScorePopup(points, 'hard-drop');
             this.updateStats();
             
             this.settlePiece();
@@ -969,6 +974,9 @@ class Game {
         this.score += points;
         this.lines += linesCleared;
         
+        // Create the score popup animation
+        this.createScorePopup(points, 'line-clear');
+        
         // Level up every 10 lines
         const newLevel = Math.floor(this.lines / 10) + 1;
         if (newLevel > this.level) {
@@ -979,6 +987,36 @@ class Game {
         
         // Update display
         this.updateStats();
+    }
+    
+    // Create a score popup animation
+    createScorePopup(points, type = '') {
+        // Create the score popup element
+        const popup = document.createElement('div');
+        popup.className = 'score-popup';
+        
+        // Add specific class based on the score type
+        if (type) {
+            popup.classList.add(type);
+        }
+        
+        popup.textContent = `+${points}`;
+        
+        // Position the popup near the score display
+        const scoreElement = this.scoreElement;
+        const scoreRect = scoreElement.getBoundingClientRect();
+        
+        // Set the initial position to be near the score display
+        popup.style.left = `${scoreRect.left + scoreRect.width / 2}px`;
+        popup.style.top = `${scoreRect.top + scoreRect.height / 2}px`;
+        
+        // Add the popup to the document
+        document.body.appendChild(popup);
+        
+        // Remove the popup after animation completes
+        setTimeout(() => {
+            document.body.removeChild(popup);
+        }, 1500); // Match the animation duration
     }
     
     // Update game stats display
