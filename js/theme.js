@@ -4,74 +4,54 @@
  */
 
 // Initialize theme toggle and demo mode functionality
-document.addEventListener('DOMContentLoaded', function() {
-    initThemeBasedOnSystemPreference();
-    initThemeToggle();
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initDemoToggle();
-    initSpeedSlider();
+    setupSpeedSlider();
 });
 
-// Check system preference for dark mode and apply it
-function initThemeBasedOnSystemPreference() {
+// Check for system preferences
+function initTheme() {
     const themeToggle = document.getElementById('theme-toggle');
     
-    // Check if the system prefers dark mode
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        // System prefers dark mode - enable it
-        document.body.classList.add('dark-mode');
-        if (themeToggle) {
-            themeToggle.checked = true;
-        }
-        console.log('Dark mode enabled based on system preference');
+    // First check if we have stored user preference
+    const darkModeStored = localStorage.getItem('darkMode');
+    
+    if (darkModeStored !== null) {
+        // Use stored preference
+        const darkMode = darkModeStored === 'true';
+        enableDarkMode(darkMode);
+        if (themeToggle) themeToggle.checked = darkMode;
     } else {
-        // System prefers light mode - ensure it's enabled
-        document.body.classList.remove('dark-mode');
-        if (themeToggle) {
-            themeToggle.checked = false;
-        }
-        console.log('Light mode enabled based on system preference');
+        // Otherwise use system preference
+        const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        enableDarkMode(prefersDarkMode);
+        if (themeToggle) themeToggle.checked = prefersDarkMode;
     }
     
-    // Add listener for system preference changes
-    if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)')
-            .addEventListener('change', event => {
-                if (event.matches) {
-                    // System switched to dark mode
-                    document.body.classList.add('dark-mode');
-                    if (themeToggle) {
-                        themeToggle.checked = true;
-                    }
-                    console.log('Dark mode enabled - system change detected');
-                } else {
-                    // System switched to light mode
-                    document.body.classList.remove('dark-mode');
-                    if (themeToggle) {
-                        themeToggle.checked = false;
-                    }
-                    console.log('Light mode enabled - system change detected');
-                }
-            });
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        // Only follow system changes if user hasn't set a preference
+        if (localStorage.getItem('darkMode') === null) {
+            const darkMode = e.matches;
+            enableDarkMode(darkMode);
+            if (themeToggle) themeToggle.checked = darkMode;
+        }
+    });
+    
+    // Add event listener to toggle
+    if (themeToggle) {
+        themeToggle.addEventListener('change', function() {
+            enableDarkMode(this.checked);
+            // Store user preference
+            localStorage.setItem('darkMode', this.checked);
+        });
     }
 }
 
-// Initialize theme toggle
-function initThemeToggle() {
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        // Don't reset the value here, as we want to preserve what was set by system preference
-        
-        // Add click handler for theme toggle
-        themeToggle.addEventListener('click', function() {
-            if (this.checked) {
-                document.body.classList.add('dark-mode');
-                console.log('Dark mode enabled');
-            } else {
-                document.body.classList.remove('dark-mode');
-                console.log('Dark mode disabled');
-            }
-        });
-    }
+// Toggle dark mode on/off
+function enableDarkMode(enable) {
+    document.body.classList.toggle('dark-theme', enable);
 }
 
 // Initialize demo toggle
@@ -82,121 +62,97 @@ function initDemoToggle() {
     if (demoToggle) {
         demoToggle.checked = false;
         
-        // Hide speed slider initially
+        // Hide speed slider initially (demo mode is off by default)
         if (speedSliderContainer) {
             speedSliderContainer.classList.remove('visible');
         }
         
-        // Make sure it's initialized properly for the game class
+        // Add event listener to toggle
         demoToggle.addEventListener('click', function() {
-            console.log('Demo mode toggled via UI:', this.checked);
-            
             // Show/hide speed slider based on demo mode state
             if (speedSliderContainer) {
                 if (this.checked) {
                     speedSliderContainer.classList.add('visible');
                     // Add tooltip to statistics when in demo mode
-                    addStatsTooltip(true);
+                    addStatsTooltip();
                 } else {
                     speedSliderContainer.classList.remove('visible');
                     // Remove tooltip when demo mode is off
-                    addStatsTooltip(false);
+                    removeStatsTooltip();
                 }
+            }
+            
+            // Update the game's demo mode setting
+            if (window.game && typeof window.game.toggleDemoMode === 'function') {
+                window.game.toggleDemoMode(this.checked);
             }
         });
     }
 }
 
 // Add tooltip to statistics section for demo mode
-function addStatsTooltip(show) {
-    const statsSection = document.querySelector('.stats-section h3');
-    
+function addStatsTooltip() {
+    const statsSection = document.querySelector('.stats-section');
     if (statsSection) {
-        if (show) {
-            statsSection.setAttribute('title', 'Click on a block type to force it as the next piece (click again to disable)');
-            statsSection.style.cursor = 'help';
-        } else {
-            statsSection.removeAttribute('title');
-            statsSection.style.cursor = '';
-        }
+        statsSection.classList.add('with-tooltip');
+        statsSection.setAttribute('title', 'Click on a block type to force it as the next piece (click again to disable)');
     }
 }
 
-// Initialize speed slider
-function initSpeedSlider() {
+// Remove tooltip from statistics section
+function removeStatsTooltip() {
+    const statsSection = document.querySelector('.stats-section');
+    if (statsSection) {
+        statsSection.classList.remove('with-tooltip');
+        statsSection.removeAttribute('title');
+    }
+}
+
+// Set up demon speed slider
+function setupSpeedSlider() {
     const speedSlider = document.getElementById('speed-slider');
     const speedValue = document.getElementById('speed-value');
     
     if (speedSlider && speedValue) {
-        // Set initial value
-        speedValue.textContent = speedSlider.value;
+        // Initial value
+        updateSpeedLabel(speedSlider.value);
         
-        // Add descriptive labels based on value
-        function getSpeedLabel(value) {
-            if (value <= 2) return "Glacial";
-            if (value <= 4) return "Slow";
-            if (value <= 6) return "Normal";
-            if (value <= 7) return "Fast";
-            if (value <= 8) return "Turbo";
-            if (value <= 9) return "Warp";
-            return "Lightspeed";
-        }
-        
-        // Update the value display when slider is moved
+        // Update when slider changes
         speedSlider.addEventListener('input', function() {
-            const value = this.value;
-            // Show only descriptive label
-            speedValue.textContent = getSpeedLabel(value);
+            updateSpeedLabel(this.value);
             
             // If game instance exists, update AI speed
             if (window.game && typeof window.game.setDemoSpeed === 'function') {
-                // Convert slider value (1-10) to appropriate speed
+                const value = parseInt(this.value);
                 const aiSpeed = 11 - value; // Invert so higher = faster
                 window.game.setDemoSpeed(aiSpeed);
-                console.log('AI speed set to:', aiSpeed);
             }
         });
-        
-        // Set initial display to just the descriptive label
-        speedValue.textContent = getSpeedLabel(speedSlider.value);
     }
 }
 
-// Add loading/initialized classes to help with transitions
-function addLoadingClass(elementId) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.classList.add('js-loading');
-        setTimeout(() => {
-            element.classList.remove('js-loading');
-            element.classList.add('js-initialized');
-        }, 300);
-    }
-}
-
-// Execute immediately, not waiting for DOMContentLoaded
-(function() {
-    // Check for system preferences immediately
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.body.classList.add('dark-mode');
+// Update speed slider label
+function updateSpeedLabel(value) {
+    const speedValue = document.getElementById('speed-value');
+    if (!speedValue) return;
+    
+    let speedText = '';
+    const intValue = parseInt(value);
+    
+    if (intValue <= 3) {
+        speedText = intValue + ' - Slow';
+    } else if (intValue <= 7) {
+        speedText = intValue + ' - Medium';
+    } else {
+        speedText = intValue + ' - Fast';
     }
     
-    // Backup init for theme toggle with small delay to ensure everything is loaded
-    setTimeout(function() {
-        const toggle = document.getElementById('theme-toggle');
-        if (toggle) {
-            console.log('Direct toggle initialization');
-            if (!toggle.onclick) {
-                toggle.onclick = function() {
-                    if (this.checked) {
-                        document.body.classList.add('dark-mode');
-                        console.log('Dark mode ON');
-                    } else {
-                        document.body.classList.remove('dark-mode');
-                        console.log('Dark mode OFF');
-                    }
-                };
-            }
-        }
-    }, 500);
-})(); 
+    speedValue.textContent = speedText;
+}
+
+// Directly initialize if the DOM is already loaded
+if (document.readyState !== 'loading') {
+    initTheme();
+    initDemoToggle();
+    setupSpeedSlider();
+} 

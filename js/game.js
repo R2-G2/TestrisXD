@@ -1391,112 +1391,58 @@ class Game {
         this.renderNextPiece(); // Update next piece previews with new orientation
     }
     
-    // Toggle demo mode on/off
+    // Toggle demo mode
     toggleDemoMode(isActive) {
         this.isDemoMode = isActive;
         
-        // Add or remove demo-mode-active class to the document body
+        // Update button styling
+        document.body.classList.toggle('demo-mode-active', isActive);
+        
         if (isActive) {
-            document.body.classList.add('demo-mode-active');
-            console.log('Demo mode activated');
-            this.setupTetrominoSelectors();
+            // If turning on, start demo mode
             this.startDemoMode();
         } else {
-            document.body.classList.remove('demo-mode-active');
-            console.log('Demo mode deactivated');
-            this.removeTetrominoSelectors();
-            this.forcedTetrominoType = null; // Reset forced type when disabling demo mode
+            // If turning off, stop demo mode
             this.stopDemoMode();
         }
     }
     
-    // Setup event listeners for tetromino type selection in demo mode
-    setupTetrominoSelectors() {
-        const statItems = document.querySelectorAll('.stat-item');
-        
-        statItems.forEach(item => {
-            const type = item.getAttribute('data-type');
-            const preview = item.querySelector('.tetromino-preview');
-            
-            if (preview) {
-                // Store a reference to the bound function so we can remove it later
-                preview._clickHandler = () => this.setNextTetrominoType(type);
-                preview.addEventListener('click', preview._clickHandler);
-            }
-        });
-    }
-    
-    // Remove event listeners for tetromino type selection
-    removeTetrominoSelectors() {
-        const statItems = document.querySelectorAll('.stat-item');
-        
-        statItems.forEach(item => {
-            const preview = item.querySelector('.tetromino-preview');
-            
-            if (preview && preview._clickHandler) {
-                preview.removeEventListener('click', preview._clickHandler);
-                preview.classList.remove('selected');
-            }
-        });
-    }
-    
-    // Set the next tetromino type when clicked in demo mode
-    setNextTetrominoType(type) {
-        if (!this.isDemoMode) return;
-        
-        // Toggle the forced type if clicked again
-        if (this.forcedTetrominoType === type) {
-            console.log(`Disabling forced tetromino type`);
+    // Set the forced tetromino type for the next piece (demo mode)
+    setForcedTetrominoType(type) {
+        // If null or undefined, clear the forced type
+        if (!type) {
             this.forcedTetrominoType = null;
             
-            // Remove selected class from all previews
-            document.querySelectorAll('.tetromino-preview').forEach(preview => {
-                preview.classList.remove('selected');
+            // Update UI to show no forced type
+            const statItems = document.querySelectorAll('.stat-item');
+            statItems.forEach(item => {
+                item.classList.remove('forced');
             });
-            
-            // Create a random next piece
-            this.nextPiece = new Tetromino();
         } else {
-            console.log(`Setting forced tetromino type to: ${type}`);
+            // Set the forced type
             this.forcedTetrominoType = type;
             
-            // Remove selected class from all previews
-            document.querySelectorAll('.tetromino-preview').forEach(preview => {
-                preview.classList.remove('selected');
+            // Update UI to show the forced type
+            const statItems = document.querySelectorAll('.stat-item');
+            statItems.forEach(item => {
+                const itemType = item.getAttribute('data-type');
+                if (itemType === type) {
+                    item.classList.add('forced');
+                } else {
+                    item.classList.remove('forced');
+                }
             });
-            
-            // Add selected class to the clicked preview
-            const selectedPreview = document.querySelector(`.stat-item[data-type="${type}"] .tetromino-preview`);
-            if (selectedPreview) {
-                selectedPreview.classList.add('selected');
-            }
-            
-            // Create a new nextPiece of the specified type
-            this.nextPiece = new Tetromino(type.toUpperCase());
         }
-        
-        // Render the next piece preview
-        this.renderNextPiece();
     }
     
     // Set the speed of the AI in demo mode
     setDemoSpeed(speed) {
-        // Speed is a value from 1-10, where 10 is fastest
-        // Use a more dramatic curve for higher speeds (8-10)
-        const minDelay = 5;     // Fastest: 5ms (extremely fast)
-        const maxDelay = 3500;  // Slowest: 3500ms (very slow)
+        // Speed from 1-10, where 1 is super slow, 10 is max speed
+        // Convert to milliseconds delay, with 1 being 2000ms, 10 being 100ms
+        const maxDelay = 2000;
         
-        // For faster speeds (8-10), use a different scaling
-        if (speed >= 8) {
-            // For speeds 8-10, use a linear scale between 80ms and 5ms
-            // This makes the fastest settings dramatically faster
-            const fastSpeedRange = 10 - 8; // 3 steps (8, 9, 10)
-            const position = speed - 8;    // 0, 1, or 2
-            const percentage = position / fastSpeedRange;
-            this.demoSpeed = Math.round(80 - percentage * 75);
-        } else {
-            // For speeds 1-7, use exponential scaling
-            // Normalize the speed to a 0-1 range (inverted so higher = faster)
+        if (speed >= 1 && speed <= 10) {
+            // Normalize speed to 0-1 range
             const normalizedSpeed = (8 - speed) / 7;
             
             // Apply exponential curve to make differences more noticeable
@@ -1506,8 +1452,6 @@ class Game {
             // Calculate delay between 100ms and maxDelay
             this.demoSpeed = Math.round(100 + (curvedSpeed * (maxDelay - 100)));
         }
-        
-        console.log(`AI delay set to: ${this.demoSpeed}ms (speed level: ${speed})`);
         
         // If demo mode is active, adjust the timer
         if (this.isDemoMode && this.demoTimer) {
