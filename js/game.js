@@ -1579,8 +1579,25 @@ class Game {
                     const fallDistance = this.currentPiece.y - this.demoTargetMove.initialY;
                     
                     if (fallDistance >= this.demoMinimumFallDistance) {
-                        // Piece has fallen enough, now perform soft drops before hard drop
-                        if (this.demoTargetMove.softDropCount < this.demoTargetMove.softDropsNeeded) {
+                        // Calculate the remaining distance to the landing position
+                        const currentY = this.currentPiece.y;
+                        
+                        // Get the ghost piece to determine landing position
+                        const ghostPiece = this.getGhostPiece();
+                        if (!ghostPiece) {
+                            // If we can't get a valid ghost piece, just hard drop
+                            this.hardDrop();
+                            this.demoTargetMove = null;
+                            return;
+                        }
+                        
+                        // Calculate remaining distance to landing
+                        const distanceToLanding = ghostPiece.y - currentY;
+                        
+                        // Only perform soft drops if there's enough space remaining
+                        // Need at least 3 spaces for it to make sense to do soft drops
+                        if (distanceToLanding >= 3 && 
+                            this.demoTargetMove.softDropCount < this.demoTargetMove.softDropsNeeded) {
                             // Perform a soft drop (manual down movement)
                             this.movePieceDown();
                             this.demoTargetMove.softDropCount++;
@@ -1595,7 +1612,7 @@ class Game {
                             }, randomDelay); 
                             return; // Exit early with the custom timer
                         } else {
-                            // Enough soft drops performed, now hard drop
+                            // Not enough space for soft drops or already did enough, hard drop now
                             this.hardDrop();
                             // Reset the target move for the next piece
                             this.demoTargetMove = null;
