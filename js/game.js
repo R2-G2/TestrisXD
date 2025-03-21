@@ -660,16 +660,27 @@ class Game {
                         const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
                         const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
                         
-                        // Use circles for mirrored boards, squares for unmirrored
-                        const useCircle = isHorizontalMirrored || isVerticalMirrored;
+                        // Calculate explosion position based on mirroring
+                        let explosionY = rowY;
                         
+                        // If vertical mirroring is active, flip the Y position
+                        if (isVerticalMirrored) {
+                            explosionY = 19 - rowY; // Flip Y position (board height is 20 cells)
+                        }
+                        
+                        // Pass mirroring info for particle effects
+                        const mirrorInfo = [];
+                        if (isHorizontalMirrored) mirrorInfo.push('horizontal');
+                        if (isVerticalMirrored) mirrorInfo.push('vertical');
+                        
+                        // Create the explosion with mirroring-adjusted position
                         this.particleSystems[ctxIndex].createExplosion(
                             ctx, 
-                            rowY, 
+                            explosionY, // Use the mirrored Y position if needed
                             this.canvases[ctxIndex].width, 
                             this.canvases[ctxIndex].height,
                             explosionScale, // Pass the explosion scale
-                            useCircle // Pass whether to use circles
+                            mirrorInfo.length > 0 ? mirrorInfo : false // Pass detailed mirroring info
                         );
                         
                         // Add another small shake for each row explosion

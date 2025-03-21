@@ -24,25 +24,40 @@ class ParticleSystem {
     }
     
     // Create explosion particles at the specified row
-    createExplosion(ctx, rowY, canvasWidth, canvasHeight, scale = 1.0, useCircle = false) {
+    createExplosion(ctx, rowY, canvasWidth, canvasHeight, scale = 1.0, mirrorInfo = false) {
         this.active = true;
         const cellHeight = canvasHeight / 20;
         const cellWidth = canvasWidth / 10;
+        
+        // Determine if horizontal or vertical mirroring is active
+        const horizontalMirror = Array.isArray(mirrorInfo) ? mirrorInfo.includes('horizontal') : mirrorInfo === true;
+        const verticalMirror = Array.isArray(mirrorInfo) ? mirrorInfo.includes('vertical') : mirrorInfo === true;
+        
+        // Determine if we should use circle shapes (any mirroring active)
+        const useCircle = horizontalMirror || verticalMirror;
         
         // Scale particle count, size, and velocity based on scale parameter
         const particleCount = Math.round(20 * scale);
         
         // Create particles for each cell in the row
         for (let x = 0; x < 10; x++) {
+            // Account for horizontal mirroring in the particle's starting position
+            const cellX = horizontalMirror ? 9 - x : x;
+            
             // Create multiple particles per cell for a more dense effect
             for (let i = 0; i < particleCount; i++) {
-                const xPos = x * cellWidth + Math.random() * cellWidth;
+                const xPos = cellX * cellWidth + Math.random() * cellWidth;
                 const yPos = rowY * cellHeight + Math.random() * cellHeight;
                 
                 // Add randomness to velocity for a more natural explosion - SLOWER VELOCITIES
                 // Scale velocity based on explosion size
-                const velX = (Math.random() - 0.5) * 15 * scale; // Scaled velocity
-                const velY = (Math.random() - 0.5) * 15 * scale; // Scaled velocity
+                let velX = (Math.random() - 0.5) * 15 * scale; // Scaled velocity
+                let velY = (Math.random() - 0.5) * 15 * scale; // Scaled velocity
+                
+                // If horizontally mirrored, invert X velocity
+                if (horizontalMirror) {
+                    velX = -velX;
+                }
                 
                 // Random colors for particles
                 const colors = Object.values(COLORS);
@@ -77,8 +92,11 @@ class ParticleSystem {
             const angle = i * (Math.PI * 2 / shockwaveCount);
             const speed = (5 + Math.random() * 5) * scale; // Scaled speed
             
+            // Position shockwave at the middle of the row, adjusted for horizontal mirroring if needed
+            let shockwaveX = canvasWidth / 2;
+            
             this.particles.push({
-                x: canvasWidth / 2,
+                x: shockwaveX,
                 y: rowY * cellHeight + cellHeight / 2,
                 velX: Math.cos(angle) * speed,
                 velY: Math.sin(angle) * speed,
@@ -95,17 +113,34 @@ class ParticleSystem {
         // Add some debris particles that look like broken blocks - scale count based on scale
         const debrisCount = Math.round(15 * scale);
         for (let i = 0; i < debrisCount; i++) {
-            const x = Math.random() * canvasWidth;
+            // Generate random position across the row, accounting for horizontal mirroring
+            let x;
+            if (horizontalMirror) {
+                // For horizontally mirrored boards, generate particles from the right side
+                const cellX = Math.floor(Math.random() * 10);
+                x = (9 - cellX) * cellWidth + Math.random() * cellWidth;
+            } else {
+                x = Math.random() * canvasWidth;
+            }
+            
             const y = rowY * cellHeight + Math.random() * cellHeight;
             
             // Use the colors array we defined earlier in this method
             const colors = Object.values(COLORS);
             
+            // Generate velocity, inverting X for horizontally mirrored boards
+            let velX = (Math.random() - 0.5) * 10 * scale; // Scaled velocity
+            if (horizontalMirror) {
+                velX = -velX;
+            }
+            
+            const velY = (Math.random() - 0.5) * 10 * scale; // Scaled velocity
+            
             this.particles.push({
                 x: x,
                 y: y,
-                velX: (Math.random() - 0.5) * 10 * scale, // Scaled velocity
-                velY: (Math.random() - 0.5) * 10 * scale, // Scaled velocity
+                velX: velX,
+                velY: velY,
                 size: (Math.random() * 15 + 5) * Math.sqrt(scale), // Scaled size
                 color: colors[Math.floor(Math.random() * colors.length)],
                 life: (Math.random() * 240 + 160) * scale, // Scaled lifetime
