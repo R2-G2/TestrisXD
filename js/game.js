@@ -1550,6 +1550,8 @@ class Game {
             this.demoTargetMove = this.findBestMove();
             this.demoTargetMove.initialY = this.currentPiece.y; // Remember starting position
             this.demoTargetMove.lastAdjustmentTime = Date.now(); // Track adjustment timing
+            this.demoTargetMove.softDropCount = 0; // Track number of soft drops performed
+            this.demoTargetMove.softDropsNeeded = Math.floor(Math.random() * 5) + 3; // Random 3-7 soft drops
         } else {
             // Check if we need to wait before next adjustment (forces pausing between adjustments)
             if (this.demoTargetMove.lastAdjustmentTime && 
@@ -1577,10 +1579,27 @@ class Game {
                     const fallDistance = this.currentPiece.y - this.demoTargetMove.initialY;
                     
                     if (fallDistance >= this.demoMinimumFallDistance) {
-                        // It has fallen enough, now hard drop
-                        this.hardDrop();
-                        // Reset the target move for the next piece
-                        this.demoTargetMove = null;
+                        // Piece has fallen enough, now perform soft drops before hard drop
+                        if (this.demoTargetMove.softDropCount < this.demoTargetMove.softDropsNeeded) {
+                            // Perform a soft drop (manual down movement)
+                            this.movePieceDown();
+                            this.demoTargetMove.softDropCount++;
+                            this.demoTargetMove.lastAdjustmentTime = Date.now();
+                            
+                            // Add some randomness to the timing between soft drops
+                            const randomDelay = Math.floor(Math.random() * 50) + 50; // 50-100ms extra delay
+                            this.demoTimer = setTimeout(() => {
+                                if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                                    this.makeDemoMove();
+                                }
+                            }, randomDelay); 
+                            return; // Exit early with the custom timer
+                        } else {
+                            // Enough soft drops performed, now hard drop
+                            this.hardDrop();
+                            // Reset the target move for the next piece
+                            this.demoTargetMove = null;
+                        }
                     }
                 }
             }
