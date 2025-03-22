@@ -241,11 +241,11 @@ function updateSpeedLabel(value) {
     const intValue = parseInt(value);
     
     if (intValue <= 3) {
-        speedText = intValue + ' - Slow';
+        speedText = 'Slow';
     } else if (intValue <= 7) {
-        speedText = intValue + ' - Medium';
+        speedText = 'Medium';
     } else {
-        speedText = intValue + ' - Fast';
+        speedText = 'Fast';
     }
     
     speedValue.textContent = speedText;
