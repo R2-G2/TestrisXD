@@ -237,15 +237,42 @@ function updateSpeedLabel(value) {
     const speedValue = document.getElementById('speed-value');
     if (!speedValue) return;
     
-    let speedText = '';
     const intValue = parseInt(value);
+    let speedText;
     
-    if (intValue <= 3) {
-        speedText = '🐢 Leisurely Slow 🐢';
-    } else if (intValue <= 7) {
-        speedText = '⚡ Steady Medium ⚡';
-    } else {
-        speedText = '🔥 Lightning Fast 🔥';
+    switch(intValue) {
+        case 1:
+            speedText = '🐌 Snail Pace';
+            break;
+        case 2:
+            speedText = '🐢 Turtle Mode';
+            break;
+        case 3:
+            speedText = '🦥 Sloth Speed';
+            break;
+        case 4:
+            speedText = '🚶 Walking Pace';
+            break;
+        case 5:
+            speedText = '🚲 Bicycle Speed';
+            break;
+        case 6:
+            speedText = '🏃 Running Pace';
+            break;
+        case 7:
+            speedText = '🏎️ Race Car';
+            break;
+        case 8:
+            speedText = '⚡ Lightning';
+            break;
+        case 9:
+            speedText = '🚀 Rocket Speed';
+            break;
+        case 10:
+            speedText = '💫 Warp Drive';
+            break;
+        default:
+            speedText = '🚲 Normal Speed';
     }
     
     speedValue.textContent = speedText;
