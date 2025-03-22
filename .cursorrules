@@ -63,6 +63,8 @@
   - Soft Drop: Green colored "+1"
   - Hard Drop: Blue colored with dynamic point value
   - Line Clear: Red colored with point value
+  - Level Up: Orange colored "+1" (or more), larger text
+  - Lines Cleared: Yellow colored with the number of lines cleared
 
 # Coding Style
 - Use camelCase for variables and functions
