@@ -2004,8 +2004,8 @@ class Game {
 
 // Initialize the game when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const game = new Game();
-    // Don't auto-start, let the user click start
+    // Create game and assign to window object for global access
+    window.game = new Game();
     
     // Add reload functionality to game title
     const gameTitle = document.getElementById('game-title');

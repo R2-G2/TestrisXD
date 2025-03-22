@@ -110,6 +110,11 @@ function initDemoToggle() {
     // Global interval reference that can be cleared by multiple functions
     let waitForGameInterval = null;
     
+    // Check if game has been started yet
+    const isGameStarted = () => {
+        return window.game && window.game.isRunning;
+    };
+    
     // Function to properly activate demo mode
     const activateDemoMode = (isActive) => {
         // Update UI
@@ -132,44 +137,51 @@ function initDemoToggle() {
             waitForGameInterval = null;
         }
         
-        // Try to update game state, or wait for game to be available
-        if (window.game && typeof window.game.toggleDemoMode === 'function') {
-            window.game.toggleDemoMode(isActive);
-            
-            // Also ensure speed settings are applied
-            const speedSettingStored = localStorage.getItem('speedSetting');
-            if (isActive && speedSettingStored !== null && window.game.setDemoSpeed) {
-                const speedSetting = parseInt(speedSettingStored);
-                const aiSpeed = 11 - speedSetting; // Invert so higher = faster
-                window.game.setDemoSpeed(aiSpeed);
-            }
-        } else if (isActive) {
-            // If game isn't available yet and we want to activate demo mode,
-            // set up an interval to wait for it
-            let attempts = 0;
-            const maxAttempts = 50; // More attempts, checking for 5 seconds
-            
-            waitForGameInterval = setInterval(() => {
-                attempts++;
-                if (window.game && typeof window.game.toggleDemoMode === 'function') {
-                    window.game.toggleDemoMode(isActive);
-                    
-                    // Apply speed settings
-                    const speedSettingStored = localStorage.getItem('speedSetting');
-                    if (speedSettingStored !== null && window.game.setDemoSpeed) {
-                        const speedSetting = parseInt(speedSettingStored);
-                        const aiSpeed = 11 - speedSetting;
-                        window.game.setDemoSpeed(aiSpeed);
-                    }
-                    
-                    clearInterval(waitForGameInterval);
-                    waitForGameInterval = null;
-                } else if (attempts >= maxAttempts) {
-                    // Stop trying after max attempts
-                    clearInterval(waitForGameInterval);
-                    waitForGameInterval = null;
+        // If we want to activate demo mode
+        if (isActive) {
+            // Try to update game state, or wait for game to be available
+            if (window.game && typeof window.game.toggleDemoMode === 'function') {
+                window.game.toggleDemoMode(isActive);
+                
+                // Also ensure speed settings are applied
+                const speedSettingStored = localStorage.getItem('speedSetting');
+                if (isActive && speedSettingStored !== null && window.game.setDemoSpeed) {
+                    const speedSetting = parseInt(speedSettingStored);
+                    const aiSpeed = 11 - speedSetting; // Invert so higher = faster
+                    window.game.setDemoSpeed(aiSpeed);
                 }
-            }, 100);
+            } else {
+                // If game isn't available yet and we want to activate demo mode,
+                // set up an interval to wait for it
+                let attempts = 0;
+                const maxAttempts = 100; // Even more attempts (10 seconds total)
+                
+                waitForGameInterval = setInterval(() => {
+                    attempts++;
+                    
+                    if (window.game && typeof window.game.toggleDemoMode === 'function') {
+                        window.game.toggleDemoMode(isActive);
+                        
+                        // Apply speed settings
+                        const speedSettingStored = localStorage.getItem('speedSetting');
+                        if (speedSettingStored !== null && window.game.setDemoSpeed) {
+                            const speedSetting = parseInt(speedSettingStored);
+                            const aiSpeed = 11 - speedSetting;
+                            window.game.setDemoSpeed(aiSpeed);
+                        }
+                        
+                        clearInterval(waitForGameInterval);
+                        waitForGameInterval = null;
+                    } else if (attempts >= maxAttempts) {
+                        // Stop trying after max attempts
+                        clearInterval(waitForGameInterval);
+                        waitForGameInterval = null;
+                    }
+                }, 100);
+            }
+        } else if (window.game && typeof window.game.toggleDemoMode === 'function') {
+            // Just deactivate if game exists and demo mode is being turned off
+            window.game.toggleDemoMode(isActive);
         }
     };
     
@@ -214,12 +226,14 @@ function initDemoToggle() {
         }
     });
     
-    // Additional check a bit after page load (for late-loading scripts)
-    setTimeout(() => {
-        if (demoToggle && demoToggle.checked) {
-            activateDemoMode(true);
-        }
-    }, 1000);
+    // Additional checks at different times after page load (for late-loading scripts)
+    [500, 1000, 2000, 3000].forEach(delay => {
+        setTimeout(() => {
+            if (demoToggle && demoToggle.checked) {
+                activateDemoMode(true);
+            }
+        }, delay);
+    });
 }
 
 // Add tooltip to statistics section for demo mode
