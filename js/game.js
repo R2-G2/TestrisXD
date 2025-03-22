@@ -1004,17 +1004,27 @@ class Game {
         }
         
         this.score += points;
+        
+        // Track old lines count and create line popup
+        const oldLines = this.lines;
         this.lines += linesCleared;
         
         // Create the score popup animation
         this.createScorePopup(points, 'line-clear');
+        // Create lines popup animation
+        this.createLinesPopup(linesCleared);
         
-        // Level up every 10 lines
+        // Track old level and check for level up
+        const oldLevel = this.level;
         const newLevel = Math.floor(this.lines / 10) + 1;
+        
         if (newLevel > this.level) {
             this.level = newLevel;
             this.speed = Math.max(100, 1000 - (this.level - 1) * 100); // Speed up as level increases
             this.startGameLoop(); // Restart game loop with new speed
+            
+            // Create level popup animation
+            this.createLevelPopup(this.level - oldLevel);
         }
         
         // Update display
@@ -1041,6 +1051,54 @@ class Game {
         // Set the initial position to be near the score display
         popup.style.left = `${scoreRect.left + scoreRect.width / 2}px`;
         popup.style.top = `${scoreRect.top + scoreRect.height / 2}px`;
+        
+        // Add the popup to the document
+        document.body.appendChild(popup);
+        
+        // Remove the popup after animation completes
+        setTimeout(() => {
+            document.body.removeChild(popup);
+        }, 1500); // Match the animation duration
+    }
+    
+    // Create a level popup animation
+    createLevelPopup(levelIncrease) {
+        // Create the level popup element
+        const popup = document.createElement('div');
+        popup.className = 'score-popup level-up';
+        popup.textContent = `+${levelIncrease}`;
+        
+        // Position the popup near the level display
+        const levelElement = this.levelElement;
+        const levelRect = levelElement.getBoundingClientRect();
+        
+        // Set the initial position
+        popup.style.left = `${levelRect.left + levelRect.width / 2}px`;
+        popup.style.top = `${levelRect.top + levelRect.height / 2}px`;
+        
+        // Add the popup to the document
+        document.body.appendChild(popup);
+        
+        // Remove the popup after animation completes
+        setTimeout(() => {
+            document.body.removeChild(popup);
+        }, 1500); // Match the animation duration
+    }
+    
+    // Create a lines popup animation
+    createLinesPopup(lineCount) {
+        // Create the lines popup element
+        const popup = document.createElement('div');
+        popup.className = 'score-popup lines-cleared';
+        popup.textContent = `+${lineCount}`;
+        
+        // Position the popup near the lines display
+        const linesElement = this.linesElement;
+        const linesRect = linesElement.getBoundingClientRect();
+        
+        // Set the initial position
+        popup.style.left = `${linesRect.left + linesRect.width / 2}px`;
+        popup.style.top = `${linesRect.top + linesRect.height / 2}px`;
         
         // Add the popup to the document
         document.body.appendChild(popup);

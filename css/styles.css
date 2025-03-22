@@ -912,6 +912,20 @@ button {
     text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
 }
 
+/* Level up - orange color */
+.score-popup.level-up {
+    color: #FF9800; /* Orange */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+    font-weight: bold;
+    font-size: 1.8em; /* Slightly larger for emphasis */
+}
+
+/* Lines cleared - yellow color */
+.score-popup.lines-cleared {
+    color: #FFC107; /* Yellow */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
 .dark-mode .score-popup {
     text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.9);
 }
@@ -926,6 +940,14 @@ button {
 
 .dark-mode .score-popup.line-clear {
     color: #f44336; /* Red */
+}
+
+.dark-mode .score-popup.level-up {
+    color: #FF9800; /* Orange */
+}
+
+.dark-mode .score-popup.lines-cleared {
+    color: #FFC107; /* Yellow */
 }
 
 /* Reset emoji in options header */
