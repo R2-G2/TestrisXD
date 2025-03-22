@@ -107,6 +107,40 @@ function initDemoToggle() {
     const demoToggle = document.getElementById('demo-toggle');
     const speedSliderContainer = document.querySelector('.slider-container');
     
+    // Function to properly activate demo mode
+    const activateDemoMode = (isActive) => {
+        // Update UI
+        if (speedSliderContainer) {
+            speedSliderContainer.classList.toggle('visible', isActive);
+        }
+        
+        // Add/remove tooltip
+        if (isActive) {
+            addStatsTooltip();
+            document.body.classList.add('demo-mode-active');
+        } else {
+            removeStatsTooltip();
+            document.body.classList.remove('demo-mode-active');
+        }
+        
+        // Try to update game state, or wait for game to be available
+        if (window.game && typeof window.game.toggleDemoMode === 'function') {
+            window.game.toggleDemoMode(isActive);
+        } else if (isActive) {
+            // If game isn't available yet and we want to activate demo mode,
+            // set up an interval to wait for it
+            const waitForGame = setInterval(() => {
+                if (window.game && typeof window.game.toggleDemoMode === 'function') {
+                    window.game.toggleDemoMode(isActive);
+                    clearInterval(waitForGame);
+                }
+            }, 100);
+            
+            // Safety timeout to prevent infinite loop
+            setTimeout(() => clearInterval(waitForGame), 5000);
+        }
+    };
+    
     if (demoToggle) {
         // Check if we have stored user preference
         const demoModeStored = localStorage.getItem('demoMode');
@@ -116,70 +150,43 @@ function initDemoToggle() {
             const demoMode = demoModeStored === 'true';
             demoToggle.checked = demoMode;
             
-            // Show/hide speed slider based on stored demo mode state
-            if (speedSliderContainer) {
-                speedSliderContainer.classList.toggle('visible', demoMode);
-            }
-            
-            // Add/remove tooltip based on demo mode state
+            // Activate demo mode if needed
             if (demoMode) {
-                addStatsTooltip();
-                // Add demo-mode-active class to body
-                document.body.classList.add('demo-mode-active');
-            } else {
-                removeStatsTooltip();
-                // Remove demo-mode-active class from body
-                document.body.classList.remove('demo-mode-active');
-            }
-            
-            // We need to wait for the game to be initialized before activating demo mode
-            if (demoMode) {
-                const waitForGame = setInterval(() => {
-                    if (window.game && typeof window.game.toggleDemoMode === 'function') {
-                        window.game.toggleDemoMode(true);
-                        clearInterval(waitForGame);
-                    }
-                }, 100);
-                
-                // Safety timeout to prevent infinite loop
-                setTimeout(() => clearInterval(waitForGame), 5000);
+                activateDemoMode(true);
             }
         } else {
             // Use default (false)
             demoToggle.checked = DEFAULT_SETTINGS.demoMode;
-            
-            // Hide speed slider initially (demo mode is off by default)
-            if (speedSliderContainer) {
-                speedSliderContainer.classList.remove('visible');
-            }
-            
             localStorage.setItem('demoMode', DEFAULT_SETTINGS.demoMode);
         }
         
         // Add event listener to toggle
         demoToggle.addEventListener('click', function() {
-            // Show/hide speed slider based on demo mode state
-            if (speedSliderContainer) {
-                if (this.checked) {
-                    speedSliderContainer.classList.add('visible');
-                    // Add tooltip to statistics when in demo mode
-                    addStatsTooltip();
-                } else {
-                    speedSliderContainer.classList.remove('visible');
-                    // Remove tooltip when demo mode is off
-                    removeStatsTooltip();
-                }
-            }
+            const isActive = this.checked;
             
             // Store user preference
-            localStorage.setItem('demoMode', this.checked);
+            localStorage.setItem('demoMode', isActive);
             
-            // Update the game's demo mode setting
-            if (window.game && typeof window.game.toggleDemoMode === 'function') {
-                window.game.toggleDemoMode(this.checked);
-            }
+            // Activate or deactivate demo mode
+            activateDemoMode(isActive);
         });
     }
+    
+    // Set up a check that runs after the whole page is loaded (including images)
+    window.addEventListener('load', () => {
+        if (demoToggle && demoToggle.checked) {
+            // Double-check that demo mode is activated if toggle is on
+            activateDemoMode(true);
+            
+            // If game speed needs to be set from stored preference
+            const speedSettingStored = localStorage.getItem('speedSetting');
+            if (speedSettingStored !== null && window.game && typeof window.game.setDemoSpeed === 'function') {
+                const speedSetting = parseInt(speedSettingStored);
+                const aiSpeed = 11 - speedSetting; // Invert so higher = faster
+                window.game.setDemoSpeed(aiSpeed);
+            }
+        }
+    });
 }
 
 // Add tooltip to statistics section for demo mode
