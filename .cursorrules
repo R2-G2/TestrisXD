@@ -46,6 +46,24 @@
 - Shape-aware particles (circles or squares based on mirror mode)
 - Modern game over overlay instead of alert box
 
+# UI Elements and Emoji Usage
+- Speed Settings (speed slider values 1-10):
+  - 1: 🐌 - Snail (slowest speed)
+  - 2: 🐢 - Turtle
+  - 3: 🦥 - Sloth
+  - 4: 🚶 - Walking person
+  - 5: 🏃 - Running person
+  - 6: 🚲 - Bicycle
+  - 7: 🏎️ - Race car
+  - 8: ⚡ - Lightning
+  - 9: 🚀 - Rocket
+  - 10: 💫 - Warp speed (fastest)
+- Reset Options: 🔄 - Used for the reset button in the options panel
+- Score Popups:
+  - Soft Drop: Green colored "+1"
+  - Hard Drop: Blue colored with dynamic point value
+  - Line Clear: Red colored with point value
+
 # Coding Style
 - Use camelCase for variables and functions
 - Classes should start with a capital letter

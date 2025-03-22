@@ -254,10 +254,10 @@ function updateSpeedLabel(value) {
             speedText = '🚶';
             break;
         case 5:
-            speedText = '🚲';
+            speedText = '🏃';
             break;
         case 6:
-            speedText = '🏃';
+            speedText = '🚲';
             break;
         case 7:
             speedText = '🏎️';
@@ -272,7 +272,7 @@ function updateSpeedLabel(value) {
             speedText = '💫';
             break;
         default:
-            speedText = '🚲';
+            speedText = '🏃';
     }
     
     speedValue.textContent = speedText;
