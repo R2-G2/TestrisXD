@@ -280,11 +280,12 @@ function updateSpeedLabel(value) {
 
 // Reset all settings to defaults
 function resetOptions() {
-    // Reset dark mode
-    localStorage.setItem('darkMode', DEFAULT_SETTINGS.darkMode);
-    enableDarkMode(DEFAULT_SETTINGS.darkMode);
+    // Reset dark mode to system preference
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    localStorage.setItem('darkMode', prefersDarkMode);
+    enableDarkMode(prefersDarkMode);
     const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) themeToggle.checked = DEFAULT_SETTINGS.darkMode;
+    if (themeToggle) themeToggle.checked = prefersDarkMode;
     
     // Reset board rotation
     localStorage.setItem('boardRotation', DEFAULT_SETTINGS.boardRotation);
