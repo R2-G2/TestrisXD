@@ -107,6 +107,9 @@ function initDemoToggle() {
     const demoToggle = document.getElementById('demo-toggle');
     const speedSliderContainer = document.querySelector('.slider-container');
     
+    // Global interval reference that can be cleared by multiple functions
+    let waitForGameInterval = null;
+    
     // Function to properly activate demo mode
     const activateDemoMode = (isActive) => {
         // Update UI
@@ -123,21 +126,50 @@ function initDemoToggle() {
             document.body.classList.remove('demo-mode-active');
         }
         
+        // Clear any existing interval
+        if (waitForGameInterval) {
+            clearInterval(waitForGameInterval);
+            waitForGameInterval = null;
+        }
+        
         // Try to update game state, or wait for game to be available
         if (window.game && typeof window.game.toggleDemoMode === 'function') {
             window.game.toggleDemoMode(isActive);
+            
+            // Also ensure speed settings are applied
+            const speedSettingStored = localStorage.getItem('speedSetting');
+            if (isActive && speedSettingStored !== null && window.game.setDemoSpeed) {
+                const speedSetting = parseInt(speedSettingStored);
+                const aiSpeed = 11 - speedSetting; // Invert so higher = faster
+                window.game.setDemoSpeed(aiSpeed);
+            }
         } else if (isActive) {
             // If game isn't available yet and we want to activate demo mode,
             // set up an interval to wait for it
-            const waitForGame = setInterval(() => {
+            let attempts = 0;
+            const maxAttempts = 50; // More attempts, checking for 5 seconds
+            
+            waitForGameInterval = setInterval(() => {
+                attempts++;
                 if (window.game && typeof window.game.toggleDemoMode === 'function') {
                     window.game.toggleDemoMode(isActive);
-                    clearInterval(waitForGame);
+                    
+                    // Apply speed settings
+                    const speedSettingStored = localStorage.getItem('speedSetting');
+                    if (speedSettingStored !== null && window.game.setDemoSpeed) {
+                        const speedSetting = parseInt(speedSettingStored);
+                        const aiSpeed = 11 - speedSetting;
+                        window.game.setDemoSpeed(aiSpeed);
+                    }
+                    
+                    clearInterval(waitForGameInterval);
+                    waitForGameInterval = null;
+                } else if (attempts >= maxAttempts) {
+                    // Stop trying after max attempts
+                    clearInterval(waitForGameInterval);
+                    waitForGameInterval = null;
                 }
             }, 100);
-            
-            // Safety timeout to prevent infinite loop
-            setTimeout(() => clearInterval(waitForGame), 5000);
         }
     };
     
@@ -172,21 +204,22 @@ function initDemoToggle() {
         });
     }
     
-    // Set up a check that runs after the whole page is loaded (including images)
+    // Set up multiple checks to ensure demo mode is activated if needed
+    
+    // Check when page is fully loaded
     window.addEventListener('load', () => {
         if (demoToggle && demoToggle.checked) {
             // Double-check that demo mode is activated if toggle is on
             activateDemoMode(true);
-            
-            // If game speed needs to be set from stored preference
-            const speedSettingStored = localStorage.getItem('speedSetting');
-            if (speedSettingStored !== null && window.game && typeof window.game.setDemoSpeed === 'function') {
-                const speedSetting = parseInt(speedSettingStored);
-                const aiSpeed = 11 - speedSetting; // Invert so higher = faster
-                window.game.setDemoSpeed(aiSpeed);
-            }
         }
     });
+    
+    // Additional check a bit after page load (for late-loading scripts)
+    setTimeout(() => {
+        if (demoToggle && demoToggle.checked) {
+            activateDemoMode(true);
+        }
+    }, 1000);
 }
 
 // Add tooltip to statistics section for demo mode

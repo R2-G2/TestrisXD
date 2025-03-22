@@ -1466,15 +1466,35 @@ class Game {
     toggleDemoMode(isActive) {
         this.isDemoMode = isActive;
         
-        // Update button styling
+        // Update body class for styling
         document.body.classList.toggle('demo-mode-active', isActive);
+        
+        // Make sure speed slider container is visible when demo mode is active
+        const speedSliderContainer = document.querySelector('.slider-container');
+        if (speedSliderContainer) {
+            speedSliderContainer.classList.toggle('visible', isActive);
+        }
         
         if (isActive) {
             // If turning on, start demo mode
             this.startDemoMode();
+            
+            // Add tooltip to statistics when in demo mode
+            const statsSection = document.querySelector('.stats-section');
+            if (statsSection) {
+                statsSection.classList.add('with-tooltip');
+                statsSection.setAttribute('title', 'Click on a block type to force it as the next piece (click again to disable)');
+            }
         } else {
             // If turning off, stop demo mode
             this.stopDemoMode();
+            
+            // Remove tooltip when demo mode is off
+            const statsSection = document.querySelector('.stats-section');
+            if (statsSection) {
+                statsSection.classList.remove('with-tooltip');
+                statsSection.removeAttribute('title');
+            }
         }
     }
     
