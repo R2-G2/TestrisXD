@@ -99,7 +99,6 @@ function initBoardRotationToggle() {
 
 // Toggle dark mode on/off
 function enableDarkMode(enable) {
-    document.body.classList.toggle('dark-theme', enable);
     document.body.classList.toggle('dark-mode', enable);
 }
 

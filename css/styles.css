@@ -947,6 +947,6 @@ button {
     transform: rotate(360deg);
 }
 
-.dark-theme .reset-emoji:hover {
+.dark-mode .reset-emoji:hover {
     background-color: rgba(0, 0, 0, 0.2);
 } 
