@@ -242,37 +242,37 @@ function updateSpeedLabel(value) {
     
     switch(intValue) {
         case 1:
-            speedText = '🐌 Snail Pace';
+            speedText = '🐌';
             break;
         case 2:
-            speedText = '🐢 Turtle Mode';
+            speedText = '🐢';
             break;
         case 3:
-            speedText = '🦥 Sloth Speed';
+            speedText = '🦥';
             break;
         case 4:
-            speedText = '🚶 Walking Pace';
+            speedText = '🚶';
             break;
         case 5:
-            speedText = '🚲 Bicycle Speed';
+            speedText = '🚲';
             break;
         case 6:
-            speedText = '🏃 Running Pace';
+            speedText = '🏃';
             break;
         case 7:
-            speedText = '🏎️ Race Car';
+            speedText = '🏎️';
             break;
         case 8:
-            speedText = '⚡ Lightning';
+            speedText = '⚡';
             break;
         case 9:
-            speedText = '🚀 Rocket Speed';
+            speedText = '🚀';
             break;
         case 10:
-            speedText = '💫 Warp Drive';
+            speedText = '💫';
             break;
         default:
-            speedText = '🚲 Normal Speed';
+            speedText = '🚲';
     }
     
     speedValue.textContent = speedText;
