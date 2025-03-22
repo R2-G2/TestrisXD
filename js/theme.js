@@ -124,13 +124,25 @@ function initDemoToggle() {
             // Add/remove tooltip based on demo mode state
             if (demoMode) {
                 addStatsTooltip();
+                // Add demo-mode-active class to body
+                document.body.classList.add('demo-mode-active');
             } else {
                 removeStatsTooltip();
+                // Remove demo-mode-active class from body
+                document.body.classList.remove('demo-mode-active');
             }
             
-            // Update the game's demo mode if game is available
-            if (window.game && typeof window.game.toggleDemoMode === 'function') {
-                window.game.toggleDemoMode(demoMode);
+            // We need to wait for the game to be initialized before activating demo mode
+            if (demoMode) {
+                const waitForGame = setInterval(() => {
+                    if (window.game && typeof window.game.toggleDemoMode === 'function') {
+                        window.game.toggleDemoMode(true);
+                        clearInterval(waitForGame);
+                    }
+                }, 100);
+                
+                // Safety timeout to prevent infinite loop
+                setTimeout(() => clearInterval(waitForGame), 5000);
             }
         } else {
             // Use default (false)
