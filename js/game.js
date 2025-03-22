@@ -52,7 +52,20 @@ class Game {
         // Initialize board rotation toggle
         const rotateToggle = document.getElementById('rotate-toggle');
         if (rotateToggle) {
-            this.allowBoardRotation = rotateToggle.checked; // Default to checked (enabled)
+            // Check stored preference if available
+            const boardRotationStored = localStorage.getItem('boardRotation');
+            if (boardRotationStored !== null) {
+                this.allowBoardRotation = boardRotationStored === 'true';
+                rotateToggle.checked = this.allowBoardRotation;
+            } else {
+                this.allowBoardRotation = rotateToggle.checked; // Default to checked (enabled)
+            }
+            
+            // Add event listener for changes
+            rotateToggle.addEventListener('change', () => {
+                this.allowBoardRotation = rotateToggle.checked;
+                localStorage.setItem('boardRotation', this.allowBoardRotation);
+            });
         } else {
             this.allowBoardRotation = true; // Default to true if toggle not found
         }

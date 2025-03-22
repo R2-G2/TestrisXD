@@ -3,14 +3,23 @@
  * Handles theme switching and toggle initialization
  */
 
+// Default settings
+const DEFAULT_SETTINGS = {
+    darkMode: false,
+    boardRotation: true,
+    demoMode: false,
+    speedSetting: 5
+};
+
 // Initialize theme toggle and demo mode functionality
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initBoardRotationToggle();
     initDemoToggle();
     setupSpeedSlider();
 });
 
-// Check for system preferences
+// Check for system preferences or stored user preferences
 function initTheme() {
     const themeToggle = document.getElementById('theme-toggle');
     
@@ -27,6 +36,9 @@ function initTheme() {
         const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
         enableDarkMode(prefersDarkMode);
         if (themeToggle) themeToggle.checked = prefersDarkMode;
+        
+        // Store the initial value
+        localStorage.setItem('darkMode', prefersDarkMode);
     }
     
     // Listen for system theme changes
@@ -49,6 +61,42 @@ function initTheme() {
     }
 }
 
+// Initialize board rotation toggle
+function initBoardRotationToggle() {
+    const rotateToggle = document.getElementById('rotate-toggle');
+    
+    if (rotateToggle) {
+        // Check if we have stored user preference
+        const boardRotationStored = localStorage.getItem('boardRotation');
+        
+        if (boardRotationStored !== null) {
+            // Use stored preference
+            const boardRotation = boardRotationStored === 'true';
+            rotateToggle.checked = boardRotation;
+            
+            // Update the game's board rotation setting if game is available
+            if (window.game) {
+                window.game.allowBoardRotation = boardRotation;
+            }
+        } else {
+            // Use default (true)
+            rotateToggle.checked = DEFAULT_SETTINGS.boardRotation;
+            localStorage.setItem('boardRotation', DEFAULT_SETTINGS.boardRotation);
+        }
+        
+        // Add event listener to toggle
+        rotateToggle.addEventListener('change', function() {
+            // Store user preference
+            localStorage.setItem('boardRotation', this.checked);
+            
+            // Update the game's board rotation setting if game is available
+            if (window.game) {
+                window.game.allowBoardRotation = this.checked;
+            }
+        });
+    }
+}
+
 // Toggle dark mode on/off
 function enableDarkMode(enable) {
     document.body.classList.toggle('dark-theme', enable);
@@ -60,11 +108,40 @@ function initDemoToggle() {
     const speedSliderContainer = document.querySelector('.slider-container');
     
     if (demoToggle) {
-        demoToggle.checked = false;
+        // Check if we have stored user preference
+        const demoModeStored = localStorage.getItem('demoMode');
         
-        // Hide speed slider initially (demo mode is off by default)
-        if (speedSliderContainer) {
-            speedSliderContainer.classList.remove('visible');
+        if (demoModeStored !== null) {
+            // Use stored preference
+            const demoMode = demoModeStored === 'true';
+            demoToggle.checked = demoMode;
+            
+            // Show/hide speed slider based on stored demo mode state
+            if (speedSliderContainer) {
+                speedSliderContainer.classList.toggle('visible', demoMode);
+            }
+            
+            // Add/remove tooltip based on demo mode state
+            if (demoMode) {
+                addStatsTooltip();
+            } else {
+                removeStatsTooltip();
+            }
+            
+            // Update the game's demo mode if game is available
+            if (window.game && typeof window.game.toggleDemoMode === 'function') {
+                window.game.toggleDemoMode(demoMode);
+            }
+        } else {
+            // Use default (false)
+            demoToggle.checked = DEFAULT_SETTINGS.demoMode;
+            
+            // Hide speed slider initially (demo mode is off by default)
+            if (speedSliderContainer) {
+                speedSliderContainer.classList.remove('visible');
+            }
+            
+            localStorage.setItem('demoMode', DEFAULT_SETTINGS.demoMode);
         }
         
         // Add event listener to toggle
@@ -81,6 +158,9 @@ function initDemoToggle() {
                     removeStatsTooltip();
                 }
             }
+            
+            // Store user preference
+            localStorage.setItem('demoMode', this.checked);
             
             // Update the game's demo mode setting
             if (window.game && typeof window.game.toggleDemoMode === 'function') {
@@ -114,12 +194,33 @@ function setupSpeedSlider() {
     const speedValue = document.getElementById('speed-value');
     
     if (speedSlider && speedValue) {
-        // Initial value
-        updateSpeedLabel(speedSlider.value);
+        // Check if we have stored user preference
+        const speedSettingStored = localStorage.getItem('speedSetting');
+        
+        if (speedSettingStored !== null) {
+            // Use stored preference
+            const speedSetting = parseInt(speedSettingStored);
+            speedSlider.value = speedSetting;
+            updateSpeedLabel(speedSetting);
+            
+            // Update the game's demo speed if game is available
+            if (window.game && typeof window.game.setDemoSpeed === 'function') {
+                const aiSpeed = 11 - speedSetting; // Invert so higher = faster
+                window.game.setDemoSpeed(aiSpeed);
+            }
+        } else {
+            // Use default (5)
+            speedSlider.value = DEFAULT_SETTINGS.speedSetting;
+            updateSpeedLabel(DEFAULT_SETTINGS.speedSetting);
+            localStorage.setItem('speedSetting', DEFAULT_SETTINGS.speedSetting);
+        }
         
         // Update when slider changes
         speedSlider.addEventListener('input', function() {
             updateSpeedLabel(this.value);
+            
+            // Store user preference
+            localStorage.setItem('speedSetting', this.value);
             
             // If game instance exists, update AI speed
             if (window.game && typeof window.game.setDemoSpeed === 'function') {
@@ -150,9 +251,67 @@ function updateSpeedLabel(value) {
     speedValue.textContent = speedText;
 }
 
+// Reset all settings to defaults
+function resetOptions() {
+    // Reset dark mode
+    localStorage.setItem('darkMode', DEFAULT_SETTINGS.darkMode);
+    enableDarkMode(DEFAULT_SETTINGS.darkMode);
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) themeToggle.checked = DEFAULT_SETTINGS.darkMode;
+    
+    // Reset board rotation
+    localStorage.setItem('boardRotation', DEFAULT_SETTINGS.boardRotation);
+    const rotateToggle = document.getElementById('rotate-toggle');
+    if (rotateToggle) rotateToggle.checked = DEFAULT_SETTINGS.boardRotation;
+    if (window.game) window.game.allowBoardRotation = DEFAULT_SETTINGS.boardRotation;
+    
+    // Reset demo mode
+    localStorage.setItem('demoMode', DEFAULT_SETTINGS.demoMode);
+    const demoToggle = document.getElementById('demo-toggle');
+    if (demoToggle) demoToggle.checked = DEFAULT_SETTINGS.demoMode;
+    if (window.game && typeof window.game.toggleDemoMode === 'function') {
+        window.game.toggleDemoMode(DEFAULT_SETTINGS.demoMode);
+    }
+    
+    // Reset speed setting
+    localStorage.setItem('speedSetting', DEFAULT_SETTINGS.speedSetting);
+    const speedSlider = document.getElementById('speed-slider');
+    if (speedSlider) speedSlider.value = DEFAULT_SETTINGS.speedSetting;
+    updateSpeedLabel(DEFAULT_SETTINGS.speedSetting);
+    if (window.game && typeof window.game.setDemoSpeed === 'function') {
+        const aiSpeed = 11 - DEFAULT_SETTINGS.speedSetting;
+        window.game.setDemoSpeed(aiSpeed);
+    }
+    
+    // Hide speed slider if demo mode is off
+    const speedSliderContainer = document.querySelector('.slider-container');
+    if (speedSliderContainer) {
+        speedSliderContainer.classList.toggle('visible', DEFAULT_SETTINGS.demoMode);
+    }
+    
+    // Remove tooltip if demo mode is off
+    if (!DEFAULT_SETTINGS.demoMode) {
+        removeStatsTooltip();
+    }
+}
+
+// Attach reset button event listener
+document.addEventListener('DOMContentLoaded', () => {
+    const resetButton = document.getElementById('reset-options');
+    if (resetButton) {
+        resetButton.addEventListener('click', resetOptions);
+    }
+});
+
 // Directly initialize if the DOM is already loaded
 if (document.readyState !== 'loading') {
     initTheme();
+    initBoardRotationToggle();
     initDemoToggle();
     setupSpeedSlider();
+    
+    const resetButton = document.getElementById('reset-options');
+    if (resetButton) {
+        resetButton.addEventListener('click', resetOptions);
+    }
 } 
