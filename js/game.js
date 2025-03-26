@@ -151,6 +151,9 @@ class Game {
         
         // Buttons
         this.setupButtons();
+        
+        // Reset Stats Button
+        this.setupResetStatsButton();
     }
     
     // Resize canvases based on container size while maintaining aspect ratio
@@ -790,6 +793,9 @@ class Game {
             if (countElement) {
                 countElement.textContent = this.tetrominoStats[type];
             }
+            
+            // Save updated statistics
+            this.saveStatisticsToLocalStorage();
         }
     }
     
@@ -805,6 +811,9 @@ class Game {
                 countElement.textContent = '0';
             }
         });
+        
+        // Save updated statistics
+        this.saveStatisticsToLocalStorage();
     }
     
     // Render the next piece previews
@@ -1119,6 +1128,9 @@ class Game {
         this.scoreElement.textContent = this.score;
         this.levelElement.textContent = this.level;
         this.linesElement.textContent = this.lines;
+        
+        // Save updated statistics
+        this.saveStatisticsToLocalStorage();
     }
     
     // Check if the game is over
@@ -1259,6 +1271,14 @@ class Game {
         // Reset tetromino statistics
         this.resetTetrominoStats();
         
+        // Reset score, level, and lines
+        this.score = 0;
+        this.level = 1;
+        this.lines = 0;
+        
+        // Update UI
+        this.updateStats();
+        
         // Update pause button text
         const pauseButton = document.getElementById('pause-button');
         if (pauseButton) {
@@ -1267,6 +1287,9 @@ class Game {
         
         // Clear the board
         this.board.grid = Array(20).fill().map(() => Array(10).fill(null));
+        
+        // Save reset state to localStorage
+        this.saveStatisticsToLocalStorage();
         
         // Render empty board
         this.renderAllCanvases();
@@ -2007,6 +2030,9 @@ class Game {
         if (this.isDemoMode) {
             this.startDemoMode();
         }
+        
+        // Save initial game state
+        this.saveStatisticsToLocalStorage();
     }
     
     // Start a screen shake effect
@@ -2018,12 +2044,124 @@ class Game {
             startTime: Date.now()
         };
     }
+    
+    // Save current statistics to localStorage
+    saveStatisticsToLocalStorage() {
+        // Save game statistics
+        localStorage.setItem('tetrisScore', this.score);
+        localStorage.setItem('tetrisLevel', this.level);
+        localStorage.setItem('tetrisLines', this.lines);
+        
+        // Save tetromino statistics
+        localStorage.setItem('tetrisTetrominoStats', JSON.stringify(this.tetrominoStats));
+    }
+    
+    // Load statistics from localStorage
+    loadStatisticsFromLocalStorage() {
+        // Load game statistics if they exist
+        const savedScore = localStorage.getItem('tetrisScore');
+        const savedLevel = localStorage.getItem('tetrisLevel');
+        const savedLines = localStorage.getItem('tetrisLines');
+        const savedTetrominoStats = localStorage.getItem('tetrisTetrominoStats');
+        
+        if (savedScore !== null) {
+            this.score = parseInt(savedScore, 10);
+        }
+        
+        if (savedLevel !== null) {
+            this.level = parseInt(savedLevel, 10);
+        }
+        
+        if (savedLines !== null) {
+            this.lines = parseInt(savedLines, 10);
+        }
+        
+        if (savedTetrominoStats !== null) {
+            try {
+                const parsedStats = JSON.parse(savedTetrominoStats);
+                // Ensure we only update keys that exist in the original stats object
+                Object.keys(this.tetrominoStats).forEach(key => {
+                    if (key in parsedStats) {
+                        this.tetrominoStats[key] = parsedStats[key];
+                    }
+                });
+            } catch (e) {
+                // If parsing fails, just use the default stats
+                console.error('Error parsing saved tetromino statistics');
+            }
+        }
+        
+        // Update the UI with loaded statistics
+        this.updateStats();
+        this.updateTetrominoStatsDisplay();
+    }
+    
+    // Update all tetromino stats displays
+    updateTetrominoStatsDisplay() {
+        Object.keys(this.tetrominoStats).forEach(type => {
+            const countElement = document.getElementById(`${type}-count`);
+            if (countElement) {
+                countElement.textContent = this.tetrominoStats[type];
+            }
+        });
+    }
+    
+    // Add a button to reset statistics to the options panel
+    setupResetStatsButton() {
+        // Get or create the reset stats button
+        let resetStatsButton = document.getElementById('reset-stats-button');
+        
+        if (!resetStatsButton) {
+            // Create button if it doesn't exist
+            resetStatsButton = document.createElement('button');
+            resetStatsButton.id = 'reset-stats-button';
+            resetStatsButton.textContent = 'Reset Stats';
+            resetStatsButton.className = 'btn';
+            
+            // Find the stats section to append the button to
+            const statsSection = document.querySelector('.stats-section');
+            if (statsSection) {
+                // Find the heading
+                const heading = statsSection.querySelector('h3');
+                if (heading) {
+                    // Create a wrapper for the heading and button if needed
+                    if (!heading.querySelector('#reset-stats-button')) {
+                        // Add button next to heading
+                        resetStatsButton.style.marginLeft = '10px';
+                        resetStatsButton.style.fontSize = '0.8rem';
+                        resetStatsButton.style.padding = '2px 8px';
+                        heading.appendChild(resetStatsButton);
+                    }
+                }
+            }
+        }
+        
+        // Add event listener to reset stats button
+        resetStatsButton.addEventListener('click', () => {
+            // Reset all statistics
+            this.score = 0;
+            this.level = 1;
+            this.lines = 0;
+            
+            // Reset tetromino counts
+            this.resetTetrominoStats();
+            
+            // Update UI
+            this.updateStats();
+            
+            // Save reset state
+            this.saveStatisticsToLocalStorage();
+        });
+    }
 }
 
 // Initialize the game when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     // Create game and assign to window object for global access
     window.game = new Game();
+    
+    // Load saved statistics if available
+    window.game.loadStatisticsFromLocalStorage();
     
     // Add reload functionality to game title
     const gameTitle = document.getElementById('game-title');
