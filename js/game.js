@@ -24,6 +24,7 @@ class Game {
         
         // Animation state
         this.animationFrame = null;
+        this.explosionActive = false;
         
         // Timer for game loop
         this.timer = null;
@@ -39,6 +40,10 @@ class Game {
             duration: 0,
             startTime: 0
         };
+        
+        // Board orientation - defines which boards have which mirroring settings
+        // [0, 1, 2, 3] means boards are in original position
+        this.boardOrientation = [0, 1, 2, 3];
         
         // Demo mode settings
         this.isDemoMode = false;
@@ -58,6 +63,9 @@ class Game {
         // Get the canvas elements
         this.canvases = Array.from(document.querySelectorAll('.game-canvas'));
         this.contexts = this.canvases.map(canvas => canvas.getContext('2d'));
+        
+        // Create explosion particle systems for each canvas
+        this.particleSystems = this.canvases.map(() => new ParticleSystem());
         
         // Get the preview canvas elements
         this.previewCanvases = [];
@@ -104,11 +112,13 @@ class Game {
         
         // Start rendering
         this.renderAllCanvases();
+        this.renderNextPiece();
         
         // Add window resize handler
         window.addEventListener('resize', () => {
             this.resizeCanvases();
             this.renderAllCanvases();
+            this.renderNextPiece();
         });
     }
     
