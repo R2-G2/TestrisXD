@@ -2007,14 +2007,18 @@ class Game {
             overlay.classList.remove('active');
         }
         
-        // Reset the game state but keep statistics
+        // Reset the game state
         this.isGameOver = false;
         this.isPaused = false;
+        
+        // Reset score, level, and lines for a new game
+        this.score = 0;
+        this.level = 1;
+        this.lines = 0;
         this.speed = 1000;
         this.demoTargetMove = null; // Reset the demo target move
         
-        // Note: We're NOT resetting score, level, lines or tetromino stats here
-        // to keep them persistent across games
+        // Note: We're keeping tetromino stats persistent across games
         
         // Update the UI to show current statistics
         this.updateStats();
