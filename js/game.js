@@ -214,8 +214,9 @@ class Game {
             clearInterval(this.timer);
         }
         
-        // Create a new timer
+        // Create a new timer - always run the game loop
         this.timer = setInterval(() => {
+            // Always update the game state to allow blocks to fall
             this.update();
         }, this.speed);
     }
@@ -599,7 +600,11 @@ class Game {
             this.createScorePopup(points, 'hard-drop');
             this.updateStats();
             
+            // Immediately settle the piece after hard drop
             this.settlePiece();
+            
+            // Force a re-render
+            this.renderAllCanvases();
         }
     }
     
@@ -1528,20 +1533,20 @@ class Game {
     
     // Set the speed of the AI in demo mode
     setDemoSpeed(speed) {
-        // Speed from 1-10, where 1 is super slow, 10 is max speed
-        // Convert to milliseconds delay, with 1 being 2000ms, 10 being 100ms
-        const maxDelay = 2000;
+        // Speed from 1-10, where:
+        // Speed 1: 2000ms ± 0-1000ms (slowest)
+        // Speed 5: 1000ms ± 0-500ms (medium)
+        // Speed 10: 250ms ± 0-125ms (fastest)
         
         if (speed >= 1 && speed <= 10) {
-            // Normalize speed to 0-1 range
-            const normalizedSpeed = (8 - speed) / 7;
-            
-            // Apply exponential curve to make differences more noticeable
-            const exponentialFactor = 5; // Steeper curve for more dramatic slowness
-            const curvedSpeed = Math.pow(normalizedSpeed, exponentialFactor);
-            
-            // Calculate delay between 100ms and maxDelay
-            this.demoSpeed = Math.round(100 + (curvedSpeed * (maxDelay - 100)));
+            // Linear interpolation between speeds
+            // Formula: delay = 2000 - ((speed - 1) * (1750 / 9))
+            // This ensures:
+            // Speed 1: 2000ms (slowest)
+            // Speed 5: 1000ms (medium)
+            // Speed 10: 250ms (fastest)
+            const baseDelay = Math.round(2000 - ((speed - 1) * (1750 / 9)));
+            this.demoSpeed = baseDelay;
         }
         
         // If demo mode is active, adjust the timer
@@ -1553,11 +1558,13 @@ class Game {
     
     // Start demo mode auto-play
     startDemoMode() {
+        // Clear any existing timer
         if (this.demoTimer) {
             clearTimeout(this.demoTimer);
+            this.demoTimer = null;
         }
         
-        // Make a demo move on a timer
+        // Make a demo move immediately
         this.makeDemoMove();
     }
     
@@ -1580,89 +1587,100 @@ class Game {
             this.demoTimer = null;
         }
         
-        // If we don't have a target move yet, calculate one and remember initial Y position
+        // Calculate random variation for this move
+        const maxVariation = Math.round(this.demoSpeed / 2);
+        const randomVariation = Math.floor(Math.random() * maxVariation);
+        const totalDelay = this.demoSpeed + randomVariation;
+        
+        // If we don't have a target move yet, calculate one
         if (!this.demoTargetMove) {
             this.demoTargetMove = this.findBestMove();
-            this.demoTargetMove.initialY = this.currentPiece.y; // Remember starting position
-            this.demoTargetMove.lastAdjustmentTime = Date.now(); // Track adjustment timing
-            this.demoTargetMove.softDropCount = 0; // Track number of soft drops performed
-            this.demoTargetMove.softDropsNeeded = Math.floor(Math.random() * 5) + 3; // Random 3-7 soft drops
-        } else {
-            // Check if we need to wait before next adjustment (forces pausing between adjustments)
-            if (this.demoTargetMove.lastAdjustmentTime && 
-                Date.now() - this.demoTargetMove.lastAdjustmentTime < 700) {
-                // Not enough time has passed since last adjustment (increased from 500ms)
-            } else {
-                // If we have a target move, make one adjustment at a time
-                // First prioritize rotation
-                if (this.currentPiece.rotationState !== this.demoTargetMove.rotation) {
-                    // Rotate once
-                    this.rotatePiece();
-                    this.demoTargetMove.lastAdjustmentTime = Date.now();
-                } else if (this.currentPiece.x < this.demoTargetMove.x) {
-                    // Move right once
-                    this.movePieceRight();
-                    this.demoTargetMove.lastAdjustmentTime = Date.now();
-                } else if (this.currentPiece.x > this.demoTargetMove.x) {
-                    // Move left once
-                    this.movePieceLeft();
-                    this.demoTargetMove.lastAdjustmentTime = Date.now();
-                } else if (this.currentPiece.rotationState === this.demoTargetMove.rotation && 
-                    this.currentPiece.x === this.demoTargetMove.x) {
-                    
-                    // Check if the piece has fallen enough, comparing to initial Y
-                    const fallDistance = this.currentPiece.y - this.demoTargetMove.initialY;
-                    
-                    if (fallDistance >= this.demoMinimumFallDistance) {
-                        // Calculate the remaining distance to the landing position
-                        const currentY = this.currentPiece.y;
-                        
-                        // Get the ghost piece to determine landing position
-                        const ghostPiece = this.getGhostPiece();
-                        if (!ghostPiece) {
-                            // If we can't get a valid ghost piece, just hard drop
-                            this.hardDrop();
-                            this.demoTargetMove = null;
-                            return;
+            if (!this.demoTargetMove) {
+                // If no valid move found, just hard drop
+                this.hardDrop();
+                // Schedule next move
+                if (totalDelay > 0) {
+                    this.demoTimer = setTimeout(() => {
+                        if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                            this.makeDemoMove();
                         }
-                        
-                        // Calculate remaining distance to landing
-                        const distanceToLanding = ghostPiece.y - currentY;
-                        
-                        // Only perform soft drops if there's enough space remaining
-                        // Need at least 3 spaces for it to make sense to do soft drops
-                        if (distanceToLanding >= 3 && 
-                            this.demoTargetMove.softDropCount < this.demoTargetMove.softDropsNeeded) {
-                            // Perform a soft drop (manual down movement)
-                            this.movePieceDown();
-                            this.demoTargetMove.softDropCount++;
-                            this.demoTargetMove.lastAdjustmentTime = Date.now();
-                            
-                            // Add some randomness to the timing between soft drops
-                            const randomDelay = Math.floor(Math.random() * 50) + 50; // 50-100ms extra delay
-                            this.demoTimer = setTimeout(() => {
-                                if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
-                                    this.makeDemoMove();
-                                }
-                            }, randomDelay); 
-                            return; // Exit early with the custom timer
-                        } else {
-                            // Not enough space for soft drops or already did enough, hard drop now
-                            this.hardDrop();
-                            // Reset the target move for the next piece
-                            this.demoTargetMove = null;
-                        }
+                    }, totalDelay);
+                } else {
+                    // For speed 10 (0ms delay), make the next move immediately
+                    if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                        this.makeDemoMove();
                     }
                 }
+                return;
+            }
+            this.demoTargetMove.softDropCount = 0;
+            this.demoTargetMove.softDropsNeeded = Math.floor(Math.random() * 3) + 2;
+        }
+        
+        // If we have a target move, make one adjustment at a time
+        if (this.currentPiece.rotationState !== this.demoTargetMove.rotation) {
+            // Rotate once
+            this.rotatePiece();
+        } else if (this.currentPiece.x < this.demoTargetMove.x) {
+            // Move right once
+            this.movePieceRight();
+        } else if (this.currentPiece.x > this.demoTargetMove.x) {
+            // Move left once
+            this.movePieceLeft();
+        } else if (this.currentPiece.rotationState === this.demoTargetMove.rotation && 
+            this.currentPiece.x === this.demoTargetMove.x) {
+            
+            // Get the ghost piece to determine landing position
+            const ghostPiece = this.getGhostPiece();
+            if (!ghostPiece) {
+                // If we can't get a valid ghost piece, just hard drop
+                this.hardDrop();
+                this.demoTargetMove = null;
+                // Schedule next move
+                if (totalDelay > 0) {
+                    this.demoTimer = setTimeout(() => {
+                        if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                            this.makeDemoMove();
+                        }
+                    }, totalDelay);
+                } else {
+                    // For speed 10 (0ms delay), make the next move immediately
+                    if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                        this.makeDemoMove();
+                    }
+                }
+                return;
+            }
+            
+            // Calculate remaining distance to landing
+            const distanceToLanding = ghostPiece.y - this.currentPiece.y;
+            
+            // Only perform soft drops if there's enough space remaining
+            if (distanceToLanding >= 2 && 
+                this.demoTargetMove.softDropCount < this.demoTargetMove.softDropsNeeded) {
+                // Perform a soft drop
+                this.movePieceDown();
+                this.demoTargetMove.softDropCount++;
+            } else {
+                // Not enough space for soft drops or already did enough, hard drop now
+                this.hardDrop();
+                this.demoTargetMove = null;
             }
         }
         
-        // Set up the next move with dynamic speed
-        this.demoTimer = setTimeout(() => {
+        // Schedule next move
+        if (totalDelay > 0) {
+            this.demoTimer = setTimeout(() => {
+                if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                    this.makeDemoMove();
+                }
+            }, totalDelay);
+        } else {
+            // For speed 10 (0ms delay), make the next move immediately
             if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
                 this.makeDemoMove();
             }
-        }, this.demoSpeed || 500); // Use the demoSpeed property if available, default to 500ms
+        }
     }
     
     // Find the best move for the current piece

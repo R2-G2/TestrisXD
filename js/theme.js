@@ -147,8 +147,7 @@ function initDemoToggle() {
                 const speedSettingStored = localStorage.getItem('speedSetting');
                 if (isActive && speedSettingStored !== null && window.game.setDemoSpeed) {
                     const speedSetting = parseInt(speedSettingStored);
-                    const aiSpeed = 11 - speedSetting; // Invert so higher = faster
-                    window.game.setDemoSpeed(aiSpeed);
+                    window.game.setDemoSpeed(speedSetting);
                 }
             } else {
                 // If game isn't available yet and we want to activate demo mode,
@@ -166,8 +165,7 @@ function initDemoToggle() {
                         const speedSettingStored = localStorage.getItem('speedSetting');
                         if (speedSettingStored !== null && window.game.setDemoSpeed) {
                             const speedSetting = parseInt(speedSettingStored);
-                            const aiSpeed = 11 - speedSetting;
-                            window.game.setDemoSpeed(aiSpeed);
+                            window.game.setDemoSpeed(speedSetting);
                         }
                         
                         clearInterval(waitForGameInterval);
@@ -271,8 +269,7 @@ function setupSpeedSlider() {
             
             // Update the game's demo speed if game is available
             if (window.game && typeof window.game.setDemoSpeed === 'function') {
-                const aiSpeed = 11 - speedSetting; // Invert so higher = faster
-                window.game.setDemoSpeed(aiSpeed);
+                window.game.setDemoSpeed(speedSetting);
             }
         } else {
             // Use default (5)
@@ -291,7 +288,7 @@ function setupSpeedSlider() {
             // If game instance exists, update AI speed
             if (window.game && typeof window.game.setDemoSpeed === 'function') {
                 const value = parseInt(this.value);
-                const aiSpeed = 11 - value; // Invert so higher = faster
+                const aiSpeed = value;
                 window.game.setDemoSpeed(aiSpeed);
             }
         });
@@ -373,7 +370,7 @@ function resetOptions() {
     if (speedSlider) speedSlider.value = DEFAULT_SETTINGS.speedSetting;
     updateSpeedLabel(DEFAULT_SETTINGS.speedSetting);
     if (window.game && typeof window.game.setDemoSpeed === 'function') {
-        const aiSpeed = 11 - DEFAULT_SETTINGS.speedSetting;
+        const aiSpeed = DEFAULT_SETTINGS.speedSetting;
         window.game.setDemoSpeed(aiSpeed);
     }
     
