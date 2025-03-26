@@ -48,16 +48,16 @@
 
 # UI Elements and Emoji Usage
 - Speed Settings (speed slider values 1-10):
-  - 1: 🐌 - Snail (slowest speed)
-  - 2: 🐢 - Turtle
-  - 3: 🦥 - Sloth
-  - 4: 🚶 - Walking person
-  - 5: 🏃 - Running person
-  - 6: 🚲 - Bicycle
-  - 7: 🏎️ - Race car
-  - 8: ⚡ - Lightning
-  - 9: 🚀 - Rocket
-  - 10: 💫 - Warp speed (fastest)
+  - 1: 🐌 - Snail (2000ms ± 0-1000ms)
+  - 2: 🐢 - Turtle (1750ms ± 0-875ms)
+  - 3: 🦥 - Sloth (1500ms ± 0-750ms)
+  - 4: 🚶 - Walking person (1250ms ± 0-625ms)
+  - 5: 🏃 - Running person (1000ms ± 0-500ms)
+  - 6: 🚲 - Bicycle (750ms ± 0-375ms)
+  - 7: 🏎️ - Race car (500ms ± 0-250ms)
+  - 8: ⚡ - Lightning (375ms ± 0-187ms)
+  - 9: 🚀 - Rocket (312ms ± 0-156ms)
+  - 10: 💫 - Warp speed (250ms ± 0-125ms)
 - Reset Options: 🔄 - Used for the reset button in the options panel
 - Score Popups:
   - Soft Drop: Green colored "+1"
