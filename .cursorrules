@@ -44,6 +44,7 @@
 - The game features multiple board views with different mirror modes
 - Tetromino statistics are tracked and preserved between game sessions
 - Top 10 high scores are saved and displayed at game over
+- Score is reset when starting a new game, but tetromino statistics persist
 
 # Visual Effects
 - Explosion animations when lines are cleared
@@ -69,6 +70,7 @@
 - Reset Buttons: 🔄 - Used for reset buttons in panels:
   - Reset Options: Resets all game options to default values
   - Reset Statistics: Resets tetromino statistics counters
+  - Reset High Scores: Clears saved high scores list
 - Score Popups:
   - Soft Drop: Green colored "+1"
   - Hard Drop: Blue colored with dynamic point value
@@ -87,6 +89,7 @@
 - Organize code into logical modules
 - Follow modern JavaScript practices 
 - Never use console.log statements in production code
+- Ensure proper focus management for better keyboard accessibility
 
 # Storage and Persistence
 - User preferences should be saved to localStorage when changed
@@ -99,6 +102,12 @@
 - High scores are stored in localStorage with score, level, and lines information
 - The top 10 high scores are maintained, sorted from highest to lowest
 - Reset buttons should have a clear visual affordance (🔄 emoji) and matching styles
+
+# Keyboard Accessibility
+- Elements that can be triggered with spacebar should remove focus after interaction
+- Interactive elements should blur after being clicked or activated
+- Game keys should not trigger UI elements when focused on game area
+- Focus management ensures consistent keyboard controls during gameplay
 
 # Version Control Rules
 - Only commit and push changes when explicitly requested
