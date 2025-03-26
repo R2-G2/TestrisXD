@@ -157,6 +157,9 @@ class Game {
         
         // Reset Stats Button
         this.setupResetStatsButton();
+        
+        // Initialize high scores from localStorage or set default
+        this.highScores = this.loadHighScores();
     }
     
     // Resize canvases based on container size while maintaining aspect ratio
@@ -1163,11 +1166,17 @@ class Game {
             document.getElementById('final-level').textContent = this.level;
             document.getElementById('final-lines').textContent = this.lines;
             
+            // Add score to high scores if it qualifies
+            const position = this.addHighScore(this.score, this.level, this.lines);
+            
             // Show game over overlay with animation
             const overlay = document.getElementById('game-over-overlay');
             
             // First make sure the overlay is in the DOM
             if (overlay) {
+                // Display high scores
+                this.displayHighScores();
+                
                 // Add the active class to trigger the CSS animations
                 setTimeout(() => {
                     overlay.classList.add('active');
@@ -2148,6 +2157,89 @@ class Game {
                 console.error('Error parsing saved tetromino statistics');
             }
         }
+    }
+    
+    // Load high scores from localStorage
+    loadHighScores() {
+        const savedHighScores = localStorage.getItem('tetrisHighScores');
+        if (savedHighScores) {
+            try {
+                return JSON.parse(savedHighScores);
+            } catch (e) {
+                // If there's an error parsing, return empty array
+                return [];
+            }
+        }
+        return []; // Return empty array if no high scores exist
+    }
+    
+    // Save high scores to localStorage
+    saveHighScores() {
+        localStorage.setItem('tetrisHighScores', JSON.stringify(this.highScores));
+    }
+    
+    // Add current score to high scores if it qualifies
+    addHighScore(score, level, lines) {
+        const newHighScore = {
+            score,
+            level, 
+            lines,
+            date: new Date().toISOString()
+        };
+        
+        // Add the new score
+        this.highScores.push(newHighScore);
+        
+        // Sort high scores by score (highest first)
+        this.highScores.sort((a, b) => b.score - a.score);
+        
+        // Keep only the top 10
+        if (this.highScores.length > 10) {
+            this.highScores = this.highScores.slice(0, 10);
+        }
+        
+        // Save to localStorage
+        this.saveHighScores();
+        
+        // Return the position (1-based) of the new score, or null if it didn't make the top 10
+        const position = this.highScores.findIndex(s => s.date === newHighScore.date) + 1;
+        return position <= 10 ? position : null;
+    }
+    
+    // Display high scores in the game over overlay
+    displayHighScores() {
+        const highScoresList = document.getElementById('high-scores-list');
+        if (!highScoresList) return;
+        
+        // Clear existing high scores
+        highScoresList.innerHTML = '';
+        
+        if (this.highScores.length === 0) {
+            const noScoresMessage = document.createElement('div');
+            noScoresMessage.className = 'no-high-scores';
+            noScoresMessage.textContent = 'No high scores yet. Play to set a record!';
+            highScoresList.appendChild(noScoresMessage);
+            return;
+        }
+        
+        // Add each high score to the list
+        this.highScores.forEach((score, index) => {
+            const scoreItem = document.createElement('div');
+            scoreItem.className = `high-score-item ${index < 3 ? `rank-${index + 1}` : ''}`;
+            
+            const rankElement = document.createElement('span');
+            rankElement.className = 'high-score-rank';
+            rankElement.textContent = `${index + 1}`;
+            
+            const scoreElement = document.createElement('span');
+            scoreElement.className = 'high-score-value';
+            scoreElement.textContent = `${score.score}`;
+            
+            scoreItem.appendChild(rankElement);
+            scoreItem.appendChild(scoreElement);
+            
+            highScoresList.appendChild(scoreItem);
+        });
     }
 }
 

@@ -10,6 +10,7 @@
 - Includes explosion animations and particle effects when lines are cleared
 - Demo mode with AI player for automatic gameplay
 - Persistent tetromino statistics stored in localStorage
+- High score tracking with medals for top performers
 
 # File Structure
 - HTML: index.html (main game page)
@@ -31,6 +32,7 @@
 - ParticleSystem: Creates explosion effects when lines are cleared
 - Game Over Overlay: Modern UI for game over state with restart option
 - LocalStorage: Stores game preferences and tetromino statistics between sessions
+- High Scores: Tracks and displays top 10 player scores with medal indicators
 
 # Game Mechanics
 - Tetrominoes fall from the top of the board
@@ -41,6 +43,7 @@
 - Levels increase as more lines are cleared, increasing game speed
 - The game features multiple board views with different mirror modes
 - Tetromino statistics are tracked and preserved between game sessions
+- Top 10 high scores are saved and displayed at game over
 
 # Visual Effects
 - Explosion animations when lines are cleared
@@ -49,6 +52,7 @@
 - Shape-aware particles (circles or squares based on mirror mode)
 - Modern game over overlay instead of alert box
 - Score popup animations with color-coding based on event type
+- Medal icons (🥇, 🥈, 🥉) for top 3 high scores
 
 # UI Elements and Emoji Usage
 - Speed Settings (speed slider values 1-10):
@@ -71,6 +75,10 @@
   - Line Clear: Red colored with point value
   - Level Up: Orange colored "+1" (or more), larger text
   - Lines Cleared: Yellow colored with the number of lines cleared
+- High Score Medals:
+  - 🥇 First place
+  - 🥈 Second place
+  - 🥉 Third place
 
 # Coding Style
 - Use camelCase for variables and functions
@@ -88,6 +96,8 @@
   - Demo mode setting
   - Demo speed setting
 - Tetromino statistics are stored in localStorage for persistence between game sessions
+- High scores are stored in localStorage with score, level, and lines information
+- The top 10 high scores are maintained, sorted from highest to lowest
 - Reset buttons should have a clear visual affordance (🔄 emoji) and matching styles
 
 # Version Control Rules

@@ -800,6 +800,8 @@ button {
     transform: translateY(20px);
     opacity: 0;
     transition: transform 0.5s ease, opacity 0.5s ease;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .game-over-overlay.active .game-over-content {
@@ -820,7 +822,7 @@ button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
     font-size: 18px;
 }
 
@@ -837,6 +839,63 @@ button {
     color: #e91e63;
     font-weight: bold;
     font-size: 24px;
+}
+
+/* High Scores Section */
+.high-scores-container {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.high-scores-container h3 {
+    color: #2196F3;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.high-scores-list {
+    border-radius: 5px;
+    background-color: #f5f5f5;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.high-score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.high-score-item:last-child {
+    border-bottom: none;
+}
+
+.high-score-rank {
+    font-weight: bold;
+    min-width: 30px;
+    text-align: left;
+}
+
+.high-score-value {
+    font-weight: bold;
+    text-align: right;
+}
+
+/* Top 3 rankings with emojis */
+.high-score-item.rank-1 .high-score-rank::before {
+    content: "🥇 ";
+}
+
+.high-score-item.rank-2 .high-score-rank::before {
+    content: "🥈 ";
+}
+
+.high-score-item.rank-3 .high-score-rank::before {
+    content: "🥉 ";
 }
 
 #restart-button {
@@ -871,9 +930,14 @@ button {
 
 .dark-mode .final-score, 
 .dark-mode .final-level, 
-.dark-mode .final-lines {
+.dark-mode .final-lines,
+.dark-mode .high-scores-list {
     background-color: #34495e;
     color: #ecf0f1;
+}
+
+.dark-mode .high-score-item {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Score Animation */
