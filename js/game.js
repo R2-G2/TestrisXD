@@ -4,162 +4,112 @@
 
 class Game {
     constructor() {
-        // Initialize game elements
-        this.canvases = Array.from(document.querySelectorAll('.game-canvas'));
-        this.contexts = this.canvases.map(canvas => canvas.getContext('2d'));
+        // Set up the game board
+        this.board = new Board();
         
-        // Initialize next piece preview canvases
-        this.nextPieceCanvases = Array.from(document.querySelectorAll('.next-piece-display'));
-        
-        // Get UI elements for scores
-        this.scoreElement = document.getElementById('score');
-        this.levelElement = document.getElementById('level');
-        this.linesElement = document.getElementById('lines');
-        
-        // Initialize tetromino statistics counters
-        this.tetrominoStats = {
-            i: 0, j: 0, l: 0, o: 0, s: 0, t: 0, z: 0
-        };
-        
-        // Load stats immediately from localStorage if available
-        this.loadStatsFromStorage();
-        
-        // Create explosion particle systems for each canvas
-        this.particleSystems = this.canvases.map(() => new ParticleSystem());
-        this.explosionActive = false;
-        this.screenShake = { active: false, intensity: 0, duration: 0, startTime: 0 };
-        
-        // Track forced tetromino type for demo mode
-        this.forcedTetrominoType = null;
-        
-        // Listen for theme changes to re-render the canvases
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('change', () => {
-                // Re-render the canvases when theme changes
-                setTimeout(() => {
-                    this.renderAllCanvases();
-                    this.renderNextPiece();
-                }, 100); // Small delay to ensure theme change is applied
-            });
-        }
-        
-        // Initialize demo mode toggle
-        const demoToggle = document.getElementById('demo-toggle');
-        if (demoToggle) {
-            demoToggle.addEventListener('change', () => {
-                this.toggleDemoMode(demoToggle.checked);
-            });
-        }
-        
-        // Initialize board rotation toggle
-        const rotateToggle = document.getElementById('rotate-toggle');
-        if (rotateToggle) {
-            // Check stored preference if available
-            const boardRotationStored = localStorage.getItem('boardRotation');
-            if (boardRotationStored !== null) {
-                this.allowBoardRotation = boardRotationStored === 'true';
-                rotateToggle.checked = this.allowBoardRotation;
-            } else {
-                this.allowBoardRotation = rotateToggle.checked; // Default to checked (enabled)
-            }
-            
-            // Add event listener for changes
-            rotateToggle.addEventListener('change', () => {
-                this.allowBoardRotation = rotateToggle.checked;
-                localStorage.setItem('boardRotation', this.allowBoardRotation);
-            });
-        } else {
-            this.allowBoardRotation = true; // Default to true if toggle not found
-        }
-        
-        // Board orientation - defines which boards have which mirroring settings
-        // [0, 1, 2, 3] means boards are in original position
-        // The value at each index represents which board's mirroring settings to use
-        this.boardOrientation = [0, 1, 2, 3];
-        
-        // Game board
-        this.board = {
-            width: 10,
-            height: 20,
-            grid: Array(20).fill().map(() => Array(10).fill(null))
-        };
-        
-        // Current and next pieces
-        this.currentPiece = null;
-        this.nextPiece = new Tetromino();
-        
-        // No need to call updateTetrominoStats here, as we'll 
-        // update stats when the game starts with createNewPiece
+        // Set up controls
+        this.setupControls();
+        this.setupButtons();
         
         // Game state
-        this.isGameOver = false;
+        this.isGameOver = true;
         this.isPaused = false;
-        this.isDemoMode = false;
-        this.demoTimer = null;
-        this.demoTargetMove = null; // Store the target move for AI
-        this.demoAllowNaturalFall = true; // Allow blocks to fall naturally for a while
-        this.demoMinimumFallDistance = 6; // Reduced from 8 to make the AI drop earlier
-        this.demoSpeed = 500; // Default AI move speed in ms
+        this.isRunning = false;
         this.score = 0;
         this.level = 1;
         this.lines = 0;
         
-        // Game speed (ms per step)
+        // Initial speed (ms)
         this.speed = 1000;
         
-        // Game loop timer
+        // Animation state
+        this.animationFrame = null;
+        
+        // Timer for game loop
         this.timer = null;
         
-        // DOM elements for score display
+        // Cache canvas dimensions
+        this.canvasWidth = 0;
+        this.canvasHeight = 0;
+        
+        // Screen shake effect data
+        this.screenShake = {
+            active: false,
+            intensity: 0,
+            duration: 0,
+            startTime: 0
+        };
+        
+        // Demo mode settings
+        this.isDemoMode = false;
+        this.demoTargetMove = null;
+        this.forcedTetrominoType = null;
+        this.demoInterval = null;
+        this.demoSpeed = 5; // Default AI speed (1-10)
+        
+        // Board rotation toggle
+        this.allowBoardRotation = true;
+        
+        // Set up UI elements
         this.scoreElement = document.getElementById('score');
         this.levelElement = document.getElementById('level');
         this.linesElement = document.getElementById('lines');
         
-        // Next piece displays (all 4 previews)
-        this.nextPieceDisplays = document.querySelectorAll('.next-piece-display');
-        this.nextPieceCanvases = [];
+        // Get the canvas elements
+        this.canvases = Array.from(document.querySelectorAll('.game-canvas'));
+        this.contexts = this.canvases.map(canvas => canvas.getContext('2d'));
         
-        // Create canvas for each next piece display
-        this.nextPieceDisplays.forEach((display, index) => {
-            const canvas = document.createElement('canvas');
-            canvas.className = 'next-piece-canvas';
-            display.appendChild(canvas);
-            this.nextPieceCanvases.push(canvas);
-        });
+        // Get the preview canvas elements
+        this.previewCanvases = [];
+        for (let i = 0; i < 4; i++) {
+            const container = document.querySelector(`.next-piece-display[data-index="${i}"]`);
+            if (container) {
+                const canvas = document.createElement('canvas');
+                canvas.className = 'next-piece-canvas';
+                container.appendChild(canvas);
+                this.previewCanvases.push({
+                    canvas,
+                    ctx: canvas.getContext('2d'),
+                    mirrorX: i === 1 || i === 3, // Preview 2 and 4
+                    mirrorY: i === 2 || i === 3  // Preview 3 and 4
+                });
+            }
+        }
         
-        // Set initial canvas dimensions but maintain aspect ratio
+        // Set up tetromino statistics tracking
+        this.tetrominoStats = {
+            i: 0, j: 0, l: 0, o: 0, s: 0, t: 0, z: 0
+        };
+        
+        // Set up high scores array
+        this.highScores = this.loadHighScores();
+        
+        // Create the first piece
+        this.createNewPiece();
+        
+        // Resize canvases
         this.resizeCanvases();
         
-        // Add window resize event listener
-        window.addEventListener('resize', () => {
-            this.resizeCanvases();
-            if (this.board && !this.isGameOver) {
-                // Add a small delay to ensure CSS has been applied
-                setTimeout(() => this.renderAllCanvases(), 50);
-            }
-        });
+        // Update the stats display initially
+        this.updateStats();
         
-        // Draw initial grid on all game canvases
-        this.canvases.forEach(canvas => {
-            const ctx = canvas.getContext('2d');
-            drawGrid(ctx, canvas.width, canvas.height);
-        });
-        
-        // Render the next piece preview
-        this.renderNextPiece();
-        
-        // Controls
-        this.setupControls();
-        
-        // Buttons
-        this.setupButtons();
-        
-        // Reset Stats Button
+        // Set up reset stats button
         this.setupResetStatsButton();
         
-        // Initialize high scores from localStorage or set default
-        this.highScores = this.loadHighScores();
+        // Set up game over overlay
+        this.setupGameOverOverlay();
+        
+        // Load stats from localStorage
+        this.loadStatisticsFromLocalStorage();
+        
+        // Start rendering
+        this.renderAllCanvases();
+        
+        // Add window resize handler
+        window.addEventListener('resize', () => {
+            this.resizeCanvases();
+            this.renderAllCanvases();
+        });
     }
     
     // Resize canvases based on container size while maintaining aspect ratio
@@ -187,8 +137,8 @@ class Game {
         });
         
         // Resize next piece preview canvases
-        this.nextPieceCanvases.forEach(canvas => {
-            const container = canvas.parentElement;
+        this.previewCanvases.forEach(canvas => {
+            const container = canvas.canvas.parentElement;
             
             // Get the computed dimensions of the container
             const containerStyle = window.getComputedStyle(container);
@@ -196,23 +146,22 @@ class Game {
             const containerHeight = Math.floor(parseFloat(containerStyle.height));
             
             // Set the canvas size to match the container exactly
-            canvas.width = containerWidth;
-            canvas.height = containerHeight;
+            canvas.canvas.width = containerWidth;
+            canvas.canvas.height = containerHeight;
             
             // Force the canvas to use the container dimensions
-            canvas.style.width = '100%';
-            canvas.style.height = '100%';
+            canvas.canvas.style.width = '100%';
+            canvas.canvas.style.height = '100%';
             
             // Draw the initial grid for preview (optional)
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.canvas.getContext('2d');
             ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.canvas.width, canvas.canvas.height);
         });
         
         // Re-render if game is active
         if (this.board && !this.isGameOver && !this.isPaused) {
             this.renderAllCanvases();
-            this.renderNextPiece();
         }
     }
     
@@ -836,9 +785,9 @@ class Game {
     // Render the next piece previews
     renderNextPiece() {
         // For each preview canvas
-        this.nextPieceCanvases.forEach((canvas, index) => {
+        this.previewCanvases.forEach((canvas, index) => {
             // Get the canvas context
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.ctx;
             
             // Get the mirroring orientation based on the board orientation
             const mirrorOrientation = this.boardOrientation[index];
@@ -855,15 +804,15 @@ class Game {
             const gameBlockSize = Math.floor(gameCanvas.width / 10); // Full size game block
             
             // Ensure canvas dimensions are set properly
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            canvas.canvas.width = canvas.canvas.offsetWidth;
+            canvas.canvas.height = canvas.canvas.offsetHeight;
             
             // Clear the canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.canvas.width, canvas.canvas.height);
             
             // Draw background
             ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, canvas.canvas.width, canvas.canvas.height);
             
             // Get the blocks for the next piece
             const blocks = this.nextPiece.blocks;
@@ -885,8 +834,8 @@ class Game {
             
             // Determine the preview block size to match the game board size ratio
             // Calculate a scale factor based on available space
-            const maxPossibleBlockWidth = canvas.width / pieceWidth;
-            const maxPossibleBlockHeight = canvas.height / pieceHeight;
+            const maxPossibleBlockWidth = canvas.canvas.width / pieceWidth;
+            const maxPossibleBlockHeight = canvas.canvas.height / pieceHeight;
             
             // Choose the smaller dimension to ensure it fits
             const blockSize = Math.min(
@@ -900,8 +849,8 @@ class Game {
             const totalHeight = pieceHeight * blockSize;
             
             // Calculate exact center position with integer offsets
-            const startX = Math.floor((canvas.width - totalWidth) / 2);
-            const startY = Math.floor((canvas.height - totalHeight) / 2);
+            const startX = Math.floor((canvas.canvas.width - totalWidth) / 2);
+            const startY = Math.floor((canvas.canvas.height - totalHeight) / 2);
             
             // Draw each block
             blocks.forEach(block => {
@@ -1309,6 +1258,11 @@ class Game {
             // Ignore controls in demo mode except for pause, restart, etc.
             if (this.isDemoMode && !['p', 'r', 'escape'].includes(event.key.toLowerCase())) {
                 return;
+            }
+            
+            // If space is pressed, remove focus from any active element to prevent it from capturing further space events
+            if (event.key === ' ' && document.activeElement && document.activeElement !== document.body) {
+                document.activeElement.blur();
             }
             
             if (!this.isGameOver && this.isRunning) {
@@ -2210,10 +2164,52 @@ class Game {
         return position <= 10 ? position : null;
     }
     
+    // Reset high scores
+    resetHighScores() {
+        // Clear the high scores array
+        this.highScores = [];
+        
+        // Save empty array to localStorage
+        this.saveHighScores();
+        
+        // Update the display
+        this.displayHighScores();
+    }
+    
     // Display high scores in the game over overlay
     displayHighScores() {
         const highScoresList = document.getElementById('high-scores-list');
         if (!highScoresList) return;
+        
+        // Find the high scores heading
+        const highScoresContainer = document.querySelector('.high-scores-container');
+        if (highScoresContainer) {
+            const heading = highScoresContainer.querySelector('h3');
+            if (heading) {
+                // Remove existing reset button if any
+                const existingButton = document.getElementById('reset-high-scores-button');
+                if (existingButton) {
+                    existingButton.remove();
+                }
+                
+                // Create a reset emoji span similar to the options reset
+                const resetEmoji = document.createElement('span');
+                resetEmoji.id = 'reset-high-scores-button';
+                resetEmoji.className = 'reset-emoji';
+                resetEmoji.textContent = '🔄';
+                resetEmoji.title = 'Reset High Scores';
+                
+                // Add the emoji span to the heading
+                heading.appendChild(resetEmoji);
+                
+                // Add event listener to reset high scores button
+                resetEmoji.addEventListener('click', () => {
+                    this.resetHighScores();
+                    // Remove focus
+                    resetEmoji.blur();
+                });
+            }
+        }
         
         // Clear existing high scores
         highScoresList.innerHTML = '';
@@ -2270,6 +2266,20 @@ class Game {
             highScoresList.appendChild(scoreItem);
         });
     }
+    
+    // Setup listeners to the game over overlay
+    setupGameOverOverlay() {
+        const overlay = document.getElementById('game-over-overlay');
+        const restartButton = document.getElementById('restart-button');
+        
+        if (overlay && restartButton) {
+            restartButton.addEventListener('click', () => {
+                this.startGame();
+                // Remove focus to prevent spacebar from activating it again
+                restartButton.blur();
+            });
+        }
+    }
 }
 
 // Initialize the game when the DOM is fully loaded
@@ -2282,6 +2292,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (gameTitle) {
         gameTitle.addEventListener('click', () => {
             window.location.reload();
+            // Remove focus
+            gameTitle.blur();
         });
     }
 }); 

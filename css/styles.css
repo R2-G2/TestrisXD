@@ -851,6 +851,10 @@ button {
     color: #2196F3;
     font-size: 20px;
     margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
 
 .high-scores-list {
@@ -1043,23 +1047,24 @@ button {
 
 /* Reset emoji in options header */
 .reset-emoji {
-    font-size: 16px;
     cursor: pointer;
-    display: inline-block;
-    transition: transform 0.3s ease;
-    padding: 2px;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
+    transition: transform 0.2s, background-color 0.2s;
 }
 
 .reset-emoji:hover {
-    transform: rotate(180deg);
-    background-color: rgba(255, 255, 255, 0.1);
+    transform: rotate(90deg);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .reset-emoji:active {
-    transform: rotate(360deg);
+    transform: rotate(180deg);
 }
 
 .dark-mode .reset-emoji:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
 } 

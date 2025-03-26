@@ -47,6 +47,10 @@ class Controls {
                 event.preventDefault();
                 break;
             case ' ': // Space
+                // Remove focus from any active element to ensure space works for hard drop
+                if (document.activeElement && document.activeElement !== document.body) {
+                    document.activeElement.blur();
+                }
                 this.game.hardDrop();
                 event.preventDefault();
                 break;
@@ -68,6 +72,11 @@ class Controls {
         this.pauseButton.textContent = 'Pause';
         this.startButton.textContent = 'Restart';
         this.game.start();
+        
+        // Remove focus from the start button
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
     }
     
     togglePause() {
@@ -79,6 +88,11 @@ class Controls {
         } else {
             this.pauseButton.textContent = 'Pause';
             this.game.resume();
+        }
+        
+        // Remove focus from the pause button
+        if (document.activeElement) {
+            document.activeElement.blur();
         }
     }
     

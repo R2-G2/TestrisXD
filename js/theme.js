@@ -57,6 +57,8 @@ function initTheme() {
             enableDarkMode(this.checked);
             // Store user preference
             localStorage.setItem('darkMode', this.checked);
+            // Remove focus to prevent spacebar from toggling it again
+            this.blur();
         });
     }
 }
@@ -93,6 +95,9 @@ function initBoardRotationToggle() {
             if (window.game) {
                 window.game.allowBoardRotation = this.checked;
             }
+            
+            // Remove focus to prevent spacebar from toggling it again
+            this.blur();
         });
     }
 }
@@ -211,6 +216,9 @@ function initDemoToggle() {
             
             // Activate or deactivate demo mode
             activateDemoMode(isActive);
+            
+            // Remove focus to prevent spacebar from toggling it again
+            this.blur();
         });
     }
     
@@ -291,6 +299,11 @@ function setupSpeedSlider() {
                 const aiSpeed = value;
                 window.game.setDemoSpeed(aiSpeed);
             }
+        });
+        
+        // Remove focus when slider interaction ends
+        speedSlider.addEventListener('change', function() {
+            this.blur();
         });
     }
 }
