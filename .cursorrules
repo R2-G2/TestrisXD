@@ -9,6 +9,7 @@
 - Features special mirror modes with circle-shaped blocks
 - Includes explosion animations and particle effects when lines are cleared
 - Demo mode with AI player for automatic gameplay
+- Persistent tetromino statistics stored in localStorage
 
 # File Structure
 - HTML: index.html (main game page)
@@ -29,6 +30,7 @@
 - Canvas: HTML5 Canvas elements for rendering the game board and next piece
 - ParticleSystem: Creates explosion effects when lines are cleared
 - Game Over Overlay: Modern UI for game over state with restart option
+- LocalStorage: Stores game preferences and tetromino statistics between sessions
 
 # Game Mechanics
 - Tetrominoes fall from the top of the board
@@ -38,6 +40,7 @@
 - Game ends when blocks stack up to the top of the board
 - Levels increase as more lines are cleared, increasing game speed
 - The game features multiple board views with different mirror modes
+- Tetromino statistics are tracked and preserved between game sessions
 
 # Visual Effects
 - Explosion animations when lines are cleared
@@ -45,6 +48,7 @@
 - Screen shake effect that varies in intensity
 - Shape-aware particles (circles or squares based on mirror mode)
 - Modern game over overlay instead of alert box
+- Score popup animations with color-coding based on event type
 
 # UI Elements and Emoji Usage
 - Speed Settings (speed slider values 1-10):
@@ -58,7 +62,9 @@
   - 8: ⚡ - Lightning (375ms ± 0-187ms)
   - 9: 🚀 - Rocket (312ms ± 0-156ms)
   - 10: 💫 - Warp speed (250ms ± 0-125ms)
-- Reset Options: 🔄 - Used for the reset button in the options panel
+- Reset Buttons: 🔄 - Used for reset buttons in panels:
+  - Reset Options: Resets all game options to default values
+  - Reset Statistics: Resets tetromino statistics counters
 - Score Popups:
   - Soft Drop: Green colored "+1"
   - Hard Drop: Blue colored with dynamic point value
@@ -73,6 +79,16 @@
 - Organize code into logical modules
 - Follow modern JavaScript practices 
 - Never use console.log statements in production code
+
+# Storage and Persistence
+- User preferences should be saved to localStorage when changed
+- Preferences include:
+  - Dark/light mode setting
+  - Board rotation setting
+  - Demo mode setting
+  - Demo speed setting
+- Tetromino statistics are stored in localStorage for persistence between game sessions
+- Reset buttons should have a clear visual affordance (🔄 emoji) and matching styles
 
 # Version Control Rules
 - Only commit and push changes when explicitly requested
