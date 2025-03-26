@@ -2225,16 +2225,41 @@ class Game {
         // Add each high score to the list
         this.highScores.forEach((score, index) => {
             const scoreItem = document.createElement('div');
-            scoreItem.className = `high-score-item ${index < 3 ? `rank-${index + 1}` : ''}`;
+            scoreItem.className = `high-score-item`;
             
+            // Create rank element with medal for top 3
             const rankElement = document.createElement('span');
             rankElement.className = 'high-score-rank';
-            rankElement.textContent = `${index + 1}`;
             
+            // Add medal emoji separately for better alignment
+            const medalElement = document.createElement('span');
+            medalElement.className = 'medal-emoji';
+            
+            if (index === 0) {
+                medalElement.textContent = '🥇';
+            } else if (index === 1) {
+                medalElement.textContent = '🥈';
+            } else if (index === 2) {
+                medalElement.textContent = '🥉';
+            } else {
+                medalElement.textContent = ' '; // Space for alignment
+            }
+            
+            // Add rank number
+            const rankNumber = document.createElement('span');
+            rankNumber.className = 'rank-number';
+            rankNumber.textContent = `${index + 1}`;
+            
+            // Append medal and rank to the rank element
+            rankElement.appendChild(medalElement);
+            rankElement.appendChild(rankNumber);
+            
+            // Create score value element
             const scoreElement = document.createElement('span');
             scoreElement.className = 'high-score-value';
             scoreElement.textContent = `${score.score}`;
             
+            // Add elements to score item
             scoreItem.appendChild(rankElement);
             scoreItem.appendChild(scoreElement);
             

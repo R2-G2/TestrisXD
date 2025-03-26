@@ -875,9 +875,21 @@ button {
 }
 
 .high-score-rank {
-    font-weight: bold;
-    min-width: 30px;
+    display: flex;
+    align-items: center;
+    min-width: 50px;
     text-align: left;
+}
+
+.medal-emoji {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+    margin-right: 4px;
+}
+
+.rank-number {
+    font-weight: bold;
 }
 
 .high-score-value {
