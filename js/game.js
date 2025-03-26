@@ -2094,42 +2094,37 @@ class Game {
     
     // Add a button to reset statistics to the options panel
     setupResetStatsButton() {
-        // Get or create the reset stats button
-        let resetStatsButton = document.getElementById('reset-stats-button');
-        
-        if (!resetStatsButton) {
-            // Create button if it doesn't exist
-            resetStatsButton = document.createElement('button');
-            resetStatsButton.id = 'reset-stats-button';
-            resetStatsButton.textContent = 'Reset Stats';
-            resetStatsButton.className = 'btn';
-            
-            // Find the stats section to append the button to
-            const statsSection = document.querySelector('.stats-section');
-            if (statsSection) {
-                // Find the heading
-                const heading = statsSection.querySelector('h3');
-                if (heading) {
-                    // Create a wrapper for the heading and button if needed
-                    if (!heading.querySelector('#reset-stats-button')) {
-                        // Add button next to heading
-                        resetStatsButton.style.marginLeft = '10px';
-                        resetStatsButton.style.fontSize = '0.8rem';
-                        resetStatsButton.style.padding = '2px 8px';
-                        heading.appendChild(resetStatsButton);
-                    }
+        // Find the stats section heading
+        const statsSection = document.querySelector('.stats-section');
+        if (statsSection) {
+            const heading = statsSection.querySelector('h3');
+            if (heading) {
+                // Remove existing reset button if any
+                const existingButton = document.getElementById('reset-stats-button');
+                if (existingButton) {
+                    existingButton.remove();
                 }
+                
+                // Create a reset emoji span similar to the options reset
+                const resetEmoji = document.createElement('span');
+                resetEmoji.id = 'reset-stats-button';
+                resetEmoji.className = 'reset-emoji';
+                resetEmoji.textContent = '🔄';
+                resetEmoji.title = 'Reset Statistics';
+                
+                // Add the emoji span to the heading
+                heading.appendChild(resetEmoji);
+                
+                // Add event listener to reset stats button
+                resetEmoji.addEventListener('click', () => {
+                    // Reset only tetromino counts, not score/level/lines
+                    this.resetTetrominoStats();
+                    
+                    // Save reset state
+                    this.saveStatisticsToLocalStorage();
+                });
             }
         }
-        
-        // Add event listener to reset stats button
-        resetStatsButton.addEventListener('click', () => {
-            // Reset only tetromino counts, not score/level/lines
-            this.resetTetrominoStats();
-            
-            // Save reset state
-            this.saveStatisticsToLocalStorage();
-        });
         
         // Ensure the statistics display is updated with current values
         this.updateTetrominoStatsDisplay();

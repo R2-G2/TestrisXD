@@ -601,25 +601,6 @@ button {
     margin-bottom: 10px;
 }
 
-#reset-stats-button {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-#reset-stats-button:hover {
-    background-color: #c82333;
-}
-
-#reset-stats-button:active {
-    background-color: #bd2130;
-}
-
 .stats-list {
     list-style: none;
     padding: 0;
