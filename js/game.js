@@ -21,6 +21,9 @@ class Game {
             i: 0, j: 0, l: 0, o: 0, s: 0, t: 0, z: 0
         };
         
+        // Load stats immediately from localStorage if available
+        this.loadStatsFromStorage();
+        
         // Create explosion particle systems for each canvas
         this.particleSystems = this.canvases.map(() => new ParticleSystem());
         this.explosionActive = false;
@@ -86,8 +89,8 @@ class Game {
         this.currentPiece = null;
         this.nextPiece = new Tetromino();
         
-        // Update statistics for the initial piece
-        this.updateTetrominoStats(this.nextPiece.type);
+        // No need to call updateTetrominoStats here, as we'll 
+        // update stats when the game starts with createNewPiece
         
         // Game state
         this.isGameOver = false;
@@ -758,20 +761,31 @@ class Game {
         // If this is the first piece, create it
         if (!this.currentPiece) {
             this.currentPiece = new Tetromino();
+            
+            // Create a new next piece - use forced type if set in demo mode
+            if (this.isDemoMode && this.forcedTetrominoType) {
+                this.nextPiece = new Tetromino(this.forcedTetrominoType.toUpperCase());
+            } else {
+                this.nextPiece = new Tetromino();
+            }
+            
+            // Update statistics for both pieces when starting a new game
+            this.updateTetrominoStats(this.currentPiece.type);
+            this.updateTetrominoStats(this.nextPiece.type);
         } else {
             // Move the next piece to current
             this.currentPiece = this.nextPiece;
+            
+            // Create a new next piece - use forced type if set in demo mode
+            if (this.isDemoMode && this.forcedTetrominoType) {
+                this.nextPiece = new Tetromino(this.forcedTetrominoType.toUpperCase());
+            } else {
+                this.nextPiece = new Tetromino();
+            }
+            
+            // Update statistics for the new piece
+            this.updateTetrominoStats(this.nextPiece.type);
         }
-        
-        // Create a new next piece - use forced type if set in demo mode
-        if (this.isDemoMode && this.forcedTetrominoType) {
-            this.nextPiece = new Tetromino(this.forcedTetrominoType.toUpperCase());
-        } else {
-            this.nextPiece = new Tetromino();
-        }
-        
-        // Update statistics for the new piece
-        this.updateTetrominoStats(this.nextPiece.type);
         
         // Reset the demo target move for the AI if in demo mode
         if (this.isDemoMode) {
@@ -1128,9 +1142,6 @@ class Game {
         this.scoreElement.textContent = this.score;
         this.levelElement.textContent = this.level;
         this.linesElement.textContent = this.lines;
-        
-        // Save updated statistics
-        this.saveStatisticsToLocalStorage();
     }
     
     // Check if the game is over
@@ -1268,16 +1279,7 @@ class Game {
         // Reset forced tetromino type
         this.forcedTetrominoType = null;
         
-        // Reset tetromino statistics
-        this.resetTetrominoStats();
-        
-        // Reset score, level, and lines
-        this.score = 0;
-        this.level = 1;
-        this.lines = 0;
-        
-        // Update UI
-        this.updateStats();
+        // Note: We're NOT resetting statistics here to keep them persistent
         
         // Update pause button text
         const pauseButton = document.getElementById('pause-button');
@@ -1287,9 +1289,6 @@ class Game {
         
         // Clear the board
         this.board.grid = Array(20).fill().map(() => Array(10).fill(null));
-        
-        // Save reset state to localStorage
-        this.saveStatisticsToLocalStorage();
         
         // Render empty board
         this.renderAllCanvases();
@@ -1999,19 +1998,16 @@ class Game {
             overlay.classList.remove('active');
         }
         
-        // Reset the game state
+        // Reset the game state but keep statistics
         this.isGameOver = false;
         this.isPaused = false;
-        this.score = 0;
-        this.level = 1;
-        this.lines = 0;
         this.speed = 1000;
         this.demoTargetMove = null; // Reset the demo target move
         
-        // Reset tetromino statistics
-        this.resetTetrominoStats();
+        // Note: We're NOT resetting score, level, lines or tetromino stats here
+        // to keep them persistent across games
         
-        // Update the UI
+        // Update the UI to show current statistics
         this.updateStats();
         
         // Clear the board
@@ -2030,9 +2026,6 @@ class Game {
         if (this.isDemoMode) {
             this.startDemoMode();
         }
-        
-        // Save initial game state
-        this.saveStatisticsToLocalStorage();
     }
     
     // Start a screen shake effect
@@ -2047,34 +2040,14 @@ class Game {
     
     // Save current statistics to localStorage
     saveStatisticsToLocalStorage() {
-        // Save game statistics
-        localStorage.setItem('tetrisScore', this.score);
-        localStorage.setItem('tetrisLevel', this.level);
-        localStorage.setItem('tetrisLines', this.lines);
-        
-        // Save tetromino statistics
+        // Only save tetromino statistics, not score/level/lines
         localStorage.setItem('tetrisTetrominoStats', JSON.stringify(this.tetrominoStats));
     }
     
     // Load statistics from localStorage
     loadStatisticsFromLocalStorage() {
-        // Load game statistics if they exist
-        const savedScore = localStorage.getItem('tetrisScore');
-        const savedLevel = localStorage.getItem('tetrisLevel');
-        const savedLines = localStorage.getItem('tetrisLines');
+        // Only load tetromino statistics, not score/level/lines
         const savedTetrominoStats = localStorage.getItem('tetrisTetrominoStats');
-        
-        if (savedScore !== null) {
-            this.score = parseInt(savedScore, 10);
-        }
-        
-        if (savedLevel !== null) {
-            this.level = parseInt(savedLevel, 10);
-        }
-        
-        if (savedLines !== null) {
-            this.lines = parseInt(savedLines, 10);
-        }
         
         if (savedTetrominoStats !== null) {
             try {
@@ -2091,9 +2064,22 @@ class Game {
             }
         }
         
-        // Update the UI with loaded statistics
-        this.updateStats();
-        this.updateTetrominoStatsDisplay();
+        // Make sure UI elements exist before updating them
+        if (this.scoreElement && this.levelElement && this.linesElement) {
+            // Update the UI with loaded statistics
+            this.updateTetrominoStatsDisplay();
+        } else {
+            // If UI elements don't exist yet, try again after a short delay
+            setTimeout(() => {
+                this.scoreElement = document.getElementById('score');
+                this.levelElement = document.getElementById('level');
+                this.linesElement = document.getElementById('lines');
+                
+                if (this.scoreElement && this.levelElement && this.linesElement) {
+                    this.updateTetrominoStatsDisplay();
+                }
+            }, 50);
+        }
     }
     
     // Update all tetromino stats displays
@@ -2138,20 +2124,35 @@ class Game {
         
         // Add event listener to reset stats button
         resetStatsButton.addEventListener('click', () => {
-            // Reset all statistics
-            this.score = 0;
-            this.level = 1;
-            this.lines = 0;
-            
-            // Reset tetromino counts
+            // Reset only tetromino counts, not score/level/lines
             this.resetTetrominoStats();
-            
-            // Update UI
-            this.updateStats();
             
             // Save reset state
             this.saveStatisticsToLocalStorage();
         });
+        
+        // Ensure the statistics display is updated with current values
+        this.updateTetrominoStatsDisplay();
+    }
+    
+    // Immediately load stats from localStorage if available (used in constructor)
+    loadStatsFromStorage() {
+        const savedTetrominoStats = localStorage.getItem('tetrisTetrominoStats');
+        
+        if (savedTetrominoStats !== null) {
+            try {
+                const parsedStats = JSON.parse(savedTetrominoStats);
+                // Ensure we only update keys that exist in the original stats object
+                Object.keys(this.tetrominoStats).forEach(key => {
+                    if (key in parsedStats) {
+                        this.tetrominoStats[key] = parsedStats[key];
+                    }
+                });
+            } catch (e) {
+                // If parsing fails, just use the default stats
+                console.error('Error parsing saved tetromino statistics');
+            }
+        }
     }
 }
 
@@ -2159,9 +2160,6 @@ class Game {
 document.addEventListener('DOMContentLoaded', () => {
     // Create game and assign to window object for global access
     window.game = new Game();
-    
-    // Load saved statistics if available
-    window.game.loadStatisticsFromLocalStorage();
     
     // Add reload functionality to game title
     const gameTitle = document.getElementById('game-title');
