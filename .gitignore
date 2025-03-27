@@ -3,3 +3,5 @@
 .gitkeep
 
 !*/**/*.gitkeep
+
+.DS_Store
