@@ -95,6 +95,9 @@ class Game {
         // Load stats from localStorage BEFORE creating the first piece
         this.loadStatisticsFromLocalStorage();
         
+        // Set up tetromino statistics click handlers
+        this.setupTetrominoStats();
+        
         // Create the first piece
         this.createNewPiece();
         
@@ -775,6 +778,27 @@ class Game {
                     
                     // Render the board
                     this.renderAllCanvases();
+                    
+                    // If in demo mode and game is still running, schedule the next move
+                    if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                        // Calculate random variation for this move
+                        const maxVariation = Math.round(this.demoSpeed / 2);
+                        const randomVariation = Math.floor(Math.random() * maxVariation);
+                        const totalDelay = this.demoSpeed + randomVariation;
+                        
+                        if (totalDelay > 0) {
+                            this.demoTimer = setTimeout(() => {
+                                if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                                    this.makeDemoMove();
+                                }
+                            }, totalDelay);
+                        } else {
+                            // For speed 10 (0ms delay), make the next move immediately
+                            if (this.isDemoMode && !this.isGameOver && !this.isPaused) {
+                                this.makeDemoMove();
+                            }
+                        }
+                    }
                 }
             }, 200); // Blink every 200ms
         }
@@ -1607,29 +1631,39 @@ class Game {
     
     // Set the forced tetromino type for the next piece (demo mode)
     setForcedTetrominoType(type) {
+        // Clear any previously selected previews first
+        const allPreviews = document.querySelectorAll('.tetromino-preview');
+        allPreviews.forEach(preview => {
+            preview.classList.remove('selected');
+        });
+        
         // If null or undefined, clear the forced type
         if (!type) {
             this.forcedTetrominoType = null;
             
-            // Update UI to show no forced type
-            const statItems = document.querySelectorAll('.stat-item');
-            statItems.forEach(item => {
-                item.classList.remove('forced');
-            });
+            // Create a new random next piece
+            if (this.isDemoMode) {
+                this.nextPiece = new Tetromino();
+                this.renderNextPiece();
+            }
         } else {
             // Set the forced type
             this.forcedTetrominoType = type;
             
             // Update UI to show the forced type
-            const statItems = document.querySelectorAll('.stat-item');
-            statItems.forEach(item => {
-                const itemType = item.getAttribute('data-type');
-                if (itemType === type) {
-                    item.classList.add('forced');
-                } else {
-                    item.classList.remove('forced');
+            const selectedItem = document.querySelector(`.stat-item[data-type="${type}"]`);
+            if (selectedItem) {
+                const preview = selectedItem.querySelector('.tetromino-preview');
+                if (preview) {
+                    preview.classList.add('selected');
                 }
-            });
+            }
+            
+            // Immediately update the next piece with the selected type
+            if (this.isDemoMode) {
+                this.nextPiece = new Tetromino(type.toUpperCase());
+                this.renderNextPiece();
+            }
         }
     }
     
@@ -2372,6 +2406,30 @@ class Game {
                 restartButton.blur();
             });
         }
+    }
+    
+    // Set up tetromino statistics click handlers
+    setupTetrominoStats() {
+        // Set up click handlers for tetromino previews in demo mode
+        const statItems = document.querySelectorAll('.stat-item');
+        statItems.forEach(item => {
+            const preview = item.querySelector('.tetromino-preview');
+            if (preview) {
+                preview.addEventListener('click', () => {
+                    if (this.isDemoMode) {
+                        const type = item.getAttribute('data-type');
+                        // Toggle the forced type - if it's already set to this type, clear it
+                        if (this.forcedTetrominoType === type) {
+                            this.setForcedTetrominoType(null);
+                            preview.classList.remove('selected');
+                        } else {
+                            this.setForcedTetrominoType(type);
+                            preview.classList.add('selected');
+                        }
+                    }
+                });
+            }
+        });
     }
 }
 

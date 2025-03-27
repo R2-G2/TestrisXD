@@ -24,6 +24,8 @@ A Tetris-like browser game built with HTML, CSS, and JavaScript using Canvas for
 - Responsive design
 - Unique mirror mode display with circular blocks
 - Demo mode with AI player
+  - Adjustable AI speed from snail (🐌) to warp speed (💫)
+  - Tetromino selection: Click on any tetromino in the statistics panel to force it as the next piece
 - Visual effects:
   - Explosion animations when clearing lines
   - Scale-aware particle effects (bigger explosions for more lines cleared)
