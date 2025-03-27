@@ -628,7 +628,7 @@ class Game {
                         // Draw LED stripe effect
                         this.drawLEDStripe(ctx, stripeY, this.canvases[ctxIndex].width, this.canvases[ctxIndex].height);
                     });
-                }, index * 100); // Shorter delay between rows for smoother effect
+                }, index * 50); // Faster delay between rows (50ms instead of 100ms)
             });
             
             // Wait for LED stripe animation before clearing lines
@@ -661,7 +661,7 @@ class Game {
                 // Render the board
                 this.renderAllCanvases();
                 
-            }, 500 + completedRows.length * 100); // Shorter wait time for better responsiveness
+            }, 250 + completedRows.length * 50); // Faster overall animation (250ms base + 50ms per row)
         }
         
         return linesCleared;
