@@ -233,30 +233,8 @@ class Game {
         this.canvases.forEach((canvas, index) => {
             const ctx = canvas.getContext('2d');
             
-            // Apply screen shake if active
-            ctx.save();
-            
-            if (this.screenShake.active) {
-                const elapsed = Date.now() - this.screenShake.startTime;
-                
-                if (elapsed < this.screenShake.duration) {
-                    // Calculate shake intensity based on remaining duration
-                    const remainingFactor = 1 - (elapsed / this.screenShake.duration);
-                    const shakeX = (Math.random() * 2 - 1) * this.screenShake.intensity * remainingFactor;
-                    const shakeY = (Math.random() * 2 - 1) * this.screenShake.intensity * remainingFactor;
-                    
-                    // Apply translation for shake effect
-                    ctx.translate(shakeX, shakeY);
-                } else {
-                    // End shake effect
-                    this.screenShake.active = false;
-                }
-            }
-            
             // Pass the canvas index to determine if mirroring is needed
             this.renderCanvas(ctx, canvas.width, canvas.height, index);
-            
-            ctx.restore();
         });
     }
     
@@ -630,9 +608,6 @@ class Game {
             // Base scale of 1.0 for a single row, up to 2.5 for 4 rows (Tetris)
             const explosionScale = 1.0 + (completedRows.length - 1) * 0.5;
             
-            // Trigger screen shake with intensity based on number of rows cleared
-            this.startScreenShake(6 + completedRows.length * 3, 800 + completedRows.length * 200); // Increased duration for more lines
-            
             // Create explosion for each completed row
             completedRows.forEach((rowY, index) => {
                 // Create explosion with slight delay between rows
@@ -668,11 +643,6 @@ class Game {
                             explosionScale, // Pass the explosion scale
                             mirrorInfo.length > 0 ? mirrorInfo : false // Pass detailed mirroring info
                         );
-                        
-                        // Add another small shake for each row explosion
-                        if (index > 0) {
-                            this.startScreenShake(3 * explosionScale, 300 * explosionScale); // Scale shake with explosion size
-                        }
                     });
                 }, index * 250); // Increased from 150ms for more spacing between explosions
             });
@@ -2040,16 +2010,6 @@ class Game {
         if (this.isDemoMode) {
             this.startDemoMode();
         }
-    }
-    
-    // Start a screen shake effect
-    startScreenShake(intensity, duration) {
-        this.screenShake = {
-            active: true,
-            intensity: intensity,
-            duration: duration,
-            startTime: Date.now()
-        };
     }
     
     // Save current statistics to localStorage
