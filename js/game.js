@@ -721,27 +721,25 @@ class Game {
             // Create a blinking effect by alternating between showing and hiding the rows
             let blinkCount = 0;
             const blinkInterval = setInterval(() => {
-                // Toggle visibility for all completed rows
-                completedRows.forEach((rowY, index) => {
-                    setTimeout(() => {
-                        this.contexts.forEach((ctx, ctxIndex) => {
-                            const mirrorOrientation = this.boardOrientation[ctxIndex];
-                            const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
-                            let displayRowY = isVerticalMirrored ? 19 - rowY : rowY;
-                            
-                            if (blinkCount % 2 === 0) {
-                                // Show the row with original colors
-                                const rowColors = this.board.grid[rowY].map(cell => COLORS[cell]);
-                                this.drawFlashingAnimation(ctx, displayRowY, this.canvases[ctxIndex].width, this.canvases[ctxIndex].height, rowColors);
-                            } else {
-                                // Hide the row by drawing a black rectangle
-                                const cellWidth = this.canvases[ctxIndex].width / 10;
-                                const cellHeight = this.canvases[ctxIndex].height / 20;
-                                ctx.fillStyle = '#111';
-                                ctx.fillRect(0, displayRowY * cellHeight, this.canvases[ctxIndex].width, cellHeight);
-                            }
-                        });
-                    }, index * 150);
+                // Toggle visibility for all completed rows simultaneously
+                completedRows.forEach(rowY => {
+                    this.contexts.forEach((ctx, ctxIndex) => {
+                        const mirrorOrientation = this.boardOrientation[ctxIndex];
+                        const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
+                        let displayRowY = isVerticalMirrored ? 19 - rowY : rowY;
+                        
+                        if (blinkCount % 2 === 0) {
+                            // Show the row with original colors
+                            const rowColors = this.board.grid[rowY].map(cell => COLORS[cell]);
+                            this.drawFlashingAnimation(ctx, displayRowY, this.canvases[ctxIndex].width, this.canvases[ctxIndex].height, rowColors);
+                        } else {
+                            // Hide the row by drawing a black rectangle
+                            const cellWidth = this.canvases[ctxIndex].width / 10;
+                            const cellHeight = this.canvases[ctxIndex].height / 20;
+                            ctx.fillStyle = '#111';
+                            ctx.fillRect(0, displayRowY * cellHeight, this.canvases[ctxIndex].width, cellHeight);
+                        }
+                    });
                 });
                 
                 blinkCount++;
