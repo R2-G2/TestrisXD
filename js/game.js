@@ -92,6 +92,9 @@ class Game {
         // Set up high scores array
         this.highScores = this.loadHighScores();
         
+        // Load stats from localStorage BEFORE creating the first piece
+        this.loadStatisticsFromLocalStorage();
+        
         // Create the first piece
         this.createNewPiece();
         
@@ -106,9 +109,6 @@ class Game {
         
         // Set up game over overlay
         this.setupGameOverOverlay();
-        
-        // Load stats from localStorage
-        this.loadStatisticsFromLocalStorage();
         
         // Start rendering
         this.renderAllCanvases();
@@ -2035,27 +2035,13 @@ class Game {
                         this.tetrominoStats[key] = parsedStats[key];
                     }
                 });
+                
+                // Update the UI with loaded statistics
+                this.updateTetrominoStatsDisplay();
             } catch (e) {
                 // If parsing fails, just use the default stats
                 console.error('Error parsing saved tetromino statistics');
             }
-        }
-        
-        // Make sure UI elements exist before updating them
-        if (this.scoreElement && this.levelElement && this.linesElement) {
-            // Update the UI with loaded statistics
-            this.updateTetrominoStatsDisplay();
-        } else {
-            // If UI elements don't exist yet, try again after a short delay
-            setTimeout(() => {
-                this.scoreElement = document.getElementById('score');
-                this.levelElement = document.getElementById('level');
-                this.linesElement = document.getElementById('lines');
-                
-                if (this.scoreElement && this.levelElement && this.linesElement) {
-                    this.updateTetrominoStatsDisplay();
-                }
-            }, 50);
         }
     }
     
