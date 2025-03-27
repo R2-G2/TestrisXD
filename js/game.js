@@ -599,20 +599,16 @@ class Game {
             }
         }
         
-        // If there are completed rows, trigger explosion effect
+        // If there are completed rows, trigger LED stripe effect
         if (completedRows.length > 0) {
-            // Set explosion state to active
+            // Set animation state to active
             this.explosionActive = true;
             
-            // Calculate explosion scale based on number of rows cleared
-            // Base scale of 1.0 for a single row, up to 2.5 for 4 rows (Tetris)
-            const explosionScale = 1.0 + (completedRows.length - 1) * 0.5;
-            
-            // Create explosion for each completed row
+            // Create LED stripe effect for each completed row
             completedRows.forEach((rowY, index) => {
-                // Create explosion with slight delay between rows
+                // Create LED stripe with shorter delay between rows
                 setTimeout(() => {
-                    // Trigger explosions in all board views
+                    // Trigger LED stripe in all board views
                     this.contexts.forEach((ctx, ctxIndex) => {
                         // Get the mirroring orientation based on the board orientation
                         const mirrorOrientation = this.boardOrientation[ctxIndex];
@@ -621,33 +617,21 @@ class Game {
                         const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
                         const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
                         
-                        // Calculate explosion position based on mirroring
-                        let explosionY = rowY;
+                        // Calculate stripe position based on mirroring
+                        let stripeY = rowY;
                         
                         // If vertical mirroring is active, flip the Y position
                         if (isVerticalMirrored) {
-                            explosionY = 19 - rowY; // Flip Y position (board height is 20 cells)
+                            stripeY = 19 - rowY;
                         }
                         
-                        // Pass mirroring info for particle effects
-                        const mirrorInfo = [];
-                        if (isHorizontalMirrored) mirrorInfo.push('horizontal');
-                        if (isVerticalMirrored) mirrorInfo.push('vertical');
-                        
-                        // Create the explosion with mirroring-adjusted position
-                        this.particleSystems[ctxIndex].createExplosion(
-                            ctx, 
-                            explosionY, // Use the mirrored Y position if needed
-                            this.canvases[ctxIndex].width, 
-                            this.canvases[ctxIndex].height,
-                            explosionScale, // Pass the explosion scale
-                            mirrorInfo.length > 0 ? mirrorInfo : false // Pass detailed mirroring info
-                        );
+                        // Draw LED stripe effect
+                        this.drawLEDStripe(ctx, stripeY, this.canvases[ctxIndex].width, this.canvases[ctxIndex].height);
                     });
-                }, index * 250); // Increased from 150ms for more spacing between explosions
+                }, index * 100); // Shorter delay between rows for smoother effect
             });
             
-            // Wait for explosion animation before clearing lines - longer wait for bigger explosions
+            // Wait for LED stripe animation before clearing lines
             setTimeout(() => {
                 // Now actually clear the rows from bottom to top
                 for (let y = 19; y >= 0; y--) {
@@ -664,11 +648,11 @@ class Game {
                     }
                 }
                 
-                // Update the game state after explosion
+                // Update the game state after animation
                 this.explosionActive = false;
                 this.updateScore(linesCleared);
                 
-                // Create new piece after explosion
+                // Create new piece after animation
                 this.createNewPiece();
                 
                 // Check if the game is over
@@ -677,12 +661,38 @@ class Game {
                 // Render the board
                 this.renderAllCanvases();
                 
-            }, 1500 + completedRows.length * 300); // Increase animation duration for more lines
-            
-            return completedRows.length; // Return number of lines cleared
+            }, 500 + completedRows.length * 100); // Shorter wait time for better responsiveness
         }
         
-        return 0; // No lines cleared
+        return linesCleared;
+    }
+
+    // Draw a Knight Rider-style LED stripe effect
+    drawLEDStripe(ctx, rowY, width, height) {
+        const cellWidth = width / 10;
+        const cellHeight = height / 20;
+        const y = rowY * cellHeight;
+        
+        // Create gradient for the LED effect
+        const gradient = ctx.createLinearGradient(0, y, width, y);
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+        gradient.addColorStop(0.2, 'rgba(255, 0, 0, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(255, 0, 0, 1)');
+        gradient.addColorStop(0.8, 'rgba(255, 0, 0, 0.8)');
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        
+        // Draw the LED stripe
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, y, width, cellHeight);
+        
+        // Add glow effect
+        ctx.shadowColor = 'rgba(255, 0, 0, 0.5)';
+        ctx.shadowBlur = 10;
+        ctx.fillRect(0, y, width, cellHeight);
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
     }
     
     // Create a new piece
@@ -1078,10 +1088,13 @@ class Game {
     
     // Check if the game is over
     checkGameOver() {
+        // Don't check for game over during line clearing animation
+        if (this.explosionActive) return;
+        
         // Game is over if any block in the top row is filled
         // or if the new piece collides immediately
         if (this.board.grid[0].some(cell => cell !== null) || 
-            this.currentPiece.hasCollision(this.board)) {
+            (this.currentPiece && this.currentPiece.hasCollision(this.board))) {
             
             // Game is over
             this.isGameOver = true;
