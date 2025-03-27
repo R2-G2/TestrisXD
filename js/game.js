@@ -1258,6 +1258,43 @@ class Game {
         // Clear the board
         this.board.grid = Array(20).fill().map(() => Array(10).fill(null));
         
+        // Update final score display
+        document.getElementById('final-score').textContent = this.score;
+        document.getElementById('final-level').textContent = this.level;
+        document.getElementById('final-lines').textContent = this.lines;
+        
+        // Add score to high scores if it qualifies
+        const position = this.addHighScore(this.score, this.level, this.lines);
+        
+        // Show game over overlay with animation
+        const overlay = document.getElementById('game-over-overlay');
+        
+        // First make sure the overlay is in the DOM
+        if (overlay) {
+            // Display high scores
+            this.displayHighScores();
+            
+            // Add the active class to trigger the CSS animations
+            setTimeout(() => {
+                overlay.classList.add('active');
+                
+                // Add event listener to restart button
+                const restartButton = document.getElementById('restart-button');
+                if (restartButton) {
+                    restartButton.addEventListener('click', () => {
+                        // Hide the overlay
+                        overlay.classList.remove('active');
+                        
+                        // Wait for the animation to complete
+                        setTimeout(() => {
+                            // Start a new game
+                            this.startGame();
+                        }, 400);
+                    });
+                }
+            }, 500); // Slight delay for dramatic effect
+        }
+        
         // Render empty board
         this.renderAllCanvases();
     }
