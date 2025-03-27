@@ -3,26 +3,15 @@
  */
 
 class Board {
-    constructor(canvasId = 'board', width = 10, height = 20) {
+    constructor(width = 10, height = 20) {
         this.width = width;
         this.height = height;
         
         // Initialize the board grid
         this.grid = Array(height).fill().map(() => Array(width).fill(null));
         
-        // Canvas element and context
-        this.canvas = document.getElementById(canvasId);
-        if (!this.canvas) {
-            console.error(`Canvas element with ID "${canvasId}" not found`);
-            return;
-        }
-        this.ctx = this.canvas.getContext('2d');
-        
         // Use BLOCK_SIZE constant from utils.js
         this.blockSize = BLOCK_SIZE;
-        
-        // Initial render
-        this.render();
     }
     
     // Check if coordinates are within the board boundaries
@@ -64,9 +53,6 @@ class Board {
             }
         });
         
-        // Render the updated board
-        this.render();
-        
         // Remove any completed lines
         return this.clearLines();
     }
@@ -90,48 +76,7 @@ class Board {
             }
         }
         
-        // Render the updated board if lines were cleared
-        if (linesCleared > 0) {
-            this.render();
-        }
-        
         return linesCleared;
-    }
-    
-    // Render the board to the canvas
-    render() {
-        // Clear the canvas
-        clearCanvas(this.ctx, this.canvas.width, this.canvas.height);
-        
-        // Draw the background grid
-        drawGrid(this.ctx, this.canvas.width, this.canvas.height, this.blockSize);
-        
-        // Draw the settled blocks
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
-                const blockType = this.grid[y][x];
-                if (blockType) {
-                    drawBlock(this.ctx, x, y, blockType, this.blockSize);
-                }
-            }
-        }
-        
-        // Draw grid border
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(0, 0, this.width * this.blockSize, this.height * this.blockSize);
-    }
-    
-    // Render the current board with the active tetromino
-    renderWithTetromino(tetromino) {
-        // Render the board
-        this.render();
-        
-        // Render the ghost piece first (so it appears behind the actual piece)
-        tetromino.renderGhost(this.ctx, this);
-        
-        // Render the tetromino
-        tetromino.render(this.ctx, this.blockSize);
     }
     
     // Check if the game is over (blocks stacked to the top)
@@ -144,8 +89,5 @@ class Board {
     reset() {
         // Reset the grid
         this.grid = Array(this.height).fill().map(() => Array(this.width).fill(null));
-        
-        // Render the empty board
-        this.render();
     }
 } 

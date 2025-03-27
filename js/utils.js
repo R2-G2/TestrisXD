@@ -37,7 +37,8 @@ class ParticleSystem {
         const useCircle = horizontalMirror || verticalMirror;
         
         // Scale particle count, size, and velocity based on scale parameter
-        const particleCount = Math.round(20 * scale);
+        // Reduced base particle count for better performance
+        const particleCount = Math.round(12 * scale);
         
         // Create particles for each cell in the row
         for (let x = 0; x < 10; x++) {
@@ -49,25 +50,25 @@ class ParticleSystem {
                 const xPos = cellX * cellWidth + Math.random() * cellWidth;
                 const yPos = rowY * cellHeight + Math.random() * cellHeight;
                 
-                // Add randomness to velocity for a more natural explosion - SLOWER VELOCITIES
-                // Scale velocity based on explosion size
-                let velX = (Math.random() - 0.5) * 15 * scale; // Scaled velocity
-                let velY = (Math.random() - 0.5) * 15 * scale; // Scaled velocity
+                // Optimized velocity calculations
+                const baseVelocity = 12 * scale;
+                let velX = (Math.random() - 0.5) * baseVelocity;
+                let velY = (Math.random() - 0.5) * baseVelocity;
                 
                 // If horizontally mirrored, invert X velocity
                 if (horizontalMirror) {
                     velX = -velX;
                 }
                 
-                // Random colors for particles
+                // Random colors for particles - pre-calculate for better performance
                 const colors = Object.values(COLORS);
                 const color = colors[Math.floor(Math.random() * colors.length)];
                 
-                // Random particle size - scaled
-                const size = (Math.random() * 10 + 2) * Math.sqrt(scale);
+                // Optimized particle size calculation
+                const size = (Math.random() * 8 + 2) * Math.sqrt(scale);
                 
-                // Random lifespan - INCREASED LIFETIME
-                const life = (Math.random() * 200 + 100) * scale; // Scaled lifetime
+                // Optimized lifespan calculation
+                const life = (Math.random() * 150 + 80) * scale;
                 
                 this.particles.push({
                     x: xPos,
@@ -78,21 +79,20 @@ class ParticleSystem {
                     color: color,
                     life: life,
                     opacity: 1.0,
-                    gravity: 0.2, // Reduced from 0.4
+                    gravity: 0.15, // Reduced gravity for smoother movement
                     rotation: Math.random() * Math.PI * 2,
-                    rotationSpeed: (Math.random() - 0.5) * 0.1, // Reduced from 0.2
-                    useCircle: useCircle // Store whether this particle should be a circle
+                    rotationSpeed: (Math.random() - 0.5) * 0.08, // Reduced rotation speed
+                    useCircle: useCircle
                 });
             }
         }
         
-        // Also create a shockwave effect - scale the number based on scale
-        const shockwaveCount = Math.round(10 * Math.sqrt(scale));
+        // Optimized shockwave effect
+        const shockwaveCount = Math.round(8 * Math.sqrt(scale));
         for (let i = 0; i < shockwaveCount; i++) {
             const angle = i * (Math.PI * 2 / shockwaveCount);
-            const speed = (5 + Math.random() * 5) * scale; // Scaled speed
+            const speed = (4 + Math.random() * 4) * scale;
             
-            // Position shockwave at the middle of the row, adjusted for horizontal mirroring if needed
             let shockwaveX = canvasWidth / 2;
             
             this.particles.push({
@@ -100,23 +100,21 @@ class ParticleSystem {
                 y: rowY * cellHeight + cellHeight / 2,
                 velX: Math.cos(angle) * speed,
                 velY: Math.sin(angle) * speed,
-                size: 20 * Math.sqrt(scale), // Scaled size
+                size: 16 * Math.sqrt(scale),
                 color: '#FFFFFF',
-                life: 60 * scale, // Scaled lifetime
+                life: 50 * scale,
                 opacity: 0.7,
                 isShockwave: true,
-                maxSize: (70 + Math.random() * 50) * scale, // Scaled max size
-                useCircle: useCircle // Always use circles for shockwaves
+                maxSize: (60 + Math.random() * 40) * scale,
+                useCircle: useCircle
             });
         }
         
-        // Add some debris particles that look like broken blocks - scale count based on scale
-        const debrisCount = Math.round(15 * scale);
+        // Optimized debris particles
+        const debrisCount = Math.round(10 * scale);
         for (let i = 0; i < debrisCount; i++) {
-            // Generate random position across the row, accounting for horizontal mirroring
             let x;
             if (horizontalMirror) {
-                // For horizontally mirrored boards, generate particles from the right side
                 const cellX = Math.floor(Math.random() * 10);
                 x = (9 - cellX) * cellWidth + Math.random() * cellWidth;
             } else {
@@ -124,30 +122,27 @@ class ParticleSystem {
             }
             
             const y = rowY * cellHeight + Math.random() * cellHeight;
-            
-            // Use the colors array we defined earlier in this method
             const colors = Object.values(COLORS);
             
-            // Generate velocity, inverting X for horizontally mirrored boards
-            let velX = (Math.random() - 0.5) * 10 * scale; // Scaled velocity
+            let velX = (Math.random() - 0.5) * 8 * scale;
             if (horizontalMirror) {
                 velX = -velX;
             }
             
-            const velY = (Math.random() - 0.5) * 10 * scale; // Scaled velocity
+            const velY = (Math.random() - 0.5) * 8 * scale;
             
             this.particles.push({
                 x: x,
                 y: y,
                 velX: velX,
                 velY: velY,
-                size: (Math.random() * 15 + 5) * Math.sqrt(scale), // Scaled size
+                size: (Math.random() * 12 + 4) * Math.sqrt(scale),
                 color: colors[Math.floor(Math.random() * colors.length)],
-                life: (Math.random() * 240 + 160) * scale, // Scaled lifetime
+                life: (Math.random() * 200 + 120) * scale,
                 opacity: 1.0,
-                gravity: 0.1, // Reduced from 0.2
+                gravity: 0.08,
                 isDebris: true,
-                useCircle: useCircle // Store whether this particle should be a circle
+                useCircle: useCircle
             });
         }
     }
@@ -162,9 +157,9 @@ class ParticleSystem {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
             
-            // Update position - SLOWER MOVEMENT
-            p.x += p.velX * 0.8; // Added multiplier to slow down
-            p.y += p.velY * 0.8; // Added multiplier to slow down
+            // Optimized position update
+            p.x += p.velX * 0.9;
+            p.y += p.velY * 0.9;
             
             // Apply gravity to normal particles
             if (!p.isShockwave) {
@@ -178,14 +173,14 @@ class ParticleSystem {
             
             // Handle shockwave growth
             if (p.isShockwave) {
-                p.size += 2.5; // Reduced from 4
-                p.opacity -= 0.015; // Reduced from 0.03
+                p.size += 2;
+                p.opacity -= 0.012;
                 
                 // Draw shockwave as a circle
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 ctx.strokeStyle = `rgba(255, 255, 255, ${p.opacity})`;
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 2;
                 ctx.stroke();
             } else if (p.isDebris) {
                 // Draw debris as squares or circles with rotation
@@ -193,10 +188,8 @@ class ParticleSystem {
                 ctx.translate(p.x, p.y);
                 ctx.rotate(p.rotation);
                 
-                // Reduce particle life - SLOWER DECAY
-                p.life -= 0.5; // Reduced from 1
-                
-                // Calculate opacity based on remaining life
+                // Optimized particle life decay
+                p.life -= 0.4;
                 p.opacity = p.life / 100;
                 
                 const colorWithOpacity = `rgba(${hexToRgb(p.color)}, ${p.opacity})`;
@@ -209,7 +202,7 @@ class ParticleSystem {
                     ctx.fill();
                     
                     // Add a highlight effect to debris
-                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.5})`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.4})`;
                     ctx.beginPath();
                     ctx.arc(-p.size/5, -p.size/5, p.size/5, 0, Math.PI * 2);
                     ctx.fill();
@@ -219,16 +212,14 @@ class ParticleSystem {
                     ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
                     
                     // Add a highlight effect to debris
-                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.5})`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.4})`;
                     ctx.fillRect(-p.size/2, -p.size/2, p.size/4, p.size/4);
                 }
                 
                 ctx.restore();
             } else {
-                // Reduce particle life - SLOWER DECAY
-                p.life -= 0.5; // Reduced from 1
-                
-                // Calculate opacity based on remaining life
+                // Optimized particle life decay
+                p.life -= 0.4;
                 p.opacity = p.life / 100;
                 
                 // Draw normal particle (square or circle)
@@ -242,7 +233,7 @@ class ParticleSystem {
                     ctx.fill();
                     
                     // Add subtle highlight
-                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.3})`;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity * 0.2})`;
                     ctx.beginPath();
                     ctx.arc(p.x + p.size/3, p.y + p.size/3, p.size/4, 0, Math.PI * 2);
                     ctx.fill();
