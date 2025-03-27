@@ -586,6 +586,120 @@ class Game {
         // Otherwise, the clearing animation will handle the continuation
     }
     
+    // Draw the flashing animation for cleared lines
+    drawFlashingAnimation(ctx, rowY, width, height, colors) {
+        const cellWidth = width / 10;
+        const cellHeight = height / 20;
+        const y = rowY * cellHeight;
+        
+        // Get the mirroring orientation based on the board orientation
+        const mirrorOrientation = this.boardOrientation[this.contexts.indexOf(ctx)];
+        
+        // Determine mirroring based on the orientation value
+        const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
+        const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
+        
+        // Use circles for mirrored boards, squares for unmirrored
+        const useCircle = isHorizontalMirrored || isVerticalMirrored;
+        
+        // Draw each block with its original color and shape
+        colors.forEach((color, index) => {
+            // Apply mirroring to coordinates
+            const displayX = isHorizontalMirrored ? 9 - index : index;
+            const xPos = displayX * cellWidth;
+            const yPos = y;
+            
+            if (useCircle) {
+                // Calculate circle parameters
+                const radius = Math.min(cellWidth, cellHeight) / 2;
+                const centerX = xPos + cellWidth / 2;
+                const centerY = yPos + cellHeight / 2;
+                
+                // Create radial gradient for 3D effect
+                const gradient = ctx.createRadialGradient(
+                    centerX - radius * 0.2, centerY - radius * 0.2, 0,
+                    centerX, centerY, radius
+                );
+                
+                gradient.addColorStop(0, this.shadeColor(color, 20));  // Lighter center
+                gradient.addColorStop(0.7, color);                     // Original color
+                gradient.addColorStop(1, this.shadeColor(color, -20)); // Darker edge
+                
+                // Draw 3D circle with gradient
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add top-left highlight (similar to squares)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0.9, Math.PI * 1.8, false);
+                ctx.lineTo(centerX, centerY);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Add bottom-right shadow (similar to squares)
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * 0.9, Math.PI * 0, Math.PI * 0.8, false);
+                ctx.lineTo(centerX, centerY);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Add a subtle border
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                // Draw square block with 3D effect
+                // Draw the main block
+                ctx.fillStyle = color;
+                ctx.fillRect(xPos, yPos, cellWidth, cellHeight);
+                
+                // Calculate border and detail sizes proportionally
+                const borderSize = Math.max(1, Math.ceil(cellWidth / 20));
+                const highlightSize = Math.max(1, Math.ceil(cellWidth / 10));
+                
+                // Draw diagonal cut (divide the block diagonally)
+                // First triangle - bottom-left (darker)
+                ctx.fillStyle = this.shadeColor(color, -10);
+                ctx.beginPath();
+                ctx.moveTo(xPos, yPos);
+                ctx.lineTo(xPos + cellWidth, yPos + cellHeight);
+                ctx.lineTo(xPos, yPos + cellHeight);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Second triangle - top-right (lighter)
+                ctx.fillStyle = this.shadeColor(color, 15);
+                ctx.beginPath();
+                ctx.moveTo(xPos, yPos);
+                ctx.lineTo(xPos + cellWidth, yPos);
+                ctx.lineTo(xPos + cellWidth, yPos + cellHeight);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Draw strong highlight on top and left (3D effect)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillRect(xPos, yPos, cellWidth, highlightSize);
+                ctx.fillRect(xPos, yPos, highlightSize, cellHeight);
+                
+                // Draw strong shadow on bottom and right (3D effect)
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(xPos, yPos + cellHeight - highlightSize, cellWidth, highlightSize);
+                ctx.fillRect(xPos + cellWidth - highlightSize, yPos, highlightSize, cellHeight);
+                
+                // Add block border
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(xPos, yPos, cellWidth, cellHeight);
+            }
+        });
+    }
+    
     // Clear completed lines and return the number of lines cleared
     clearLines() {
         let linesCleared = 0;
@@ -599,100 +713,75 @@ class Game {
             }
         }
         
-        // If there are completed rows, trigger LED stripe effect
+        // If there are completed rows, trigger flashing animation
         if (completedRows.length > 0) {
             // Set animation state to active
             this.explosionActive = true;
             
-            // Create LED stripe effect for each completed row
-            completedRows.forEach((rowY, index) => {
-                // Create LED stripe with shorter delay between rows
-                setTimeout(() => {
-                    // Trigger LED stripe in all board views
-                    this.contexts.forEach((ctx, ctxIndex) => {
-                        // Get the mirroring orientation based on the board orientation
-                        const mirrorOrientation = this.boardOrientation[ctxIndex];
-                        
-                        // Determine mirroring based on the orientation value
-                        const isHorizontalMirrored = mirrorOrientation === 1 || mirrorOrientation === 3;
-                        const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
-                        
-                        // Calculate stripe position based on mirroring
-                        let stripeY = rowY;
-                        
-                        // If vertical mirroring is active, flip the Y position
-                        if (isVerticalMirrored) {
-                            stripeY = 19 - rowY;
+            // Create a blinking effect by alternating between showing and hiding the rows
+            let blinkCount = 0;
+            const blinkInterval = setInterval(() => {
+                // Toggle visibility for all completed rows
+                completedRows.forEach((rowY, index) => {
+                    setTimeout(() => {
+                        this.contexts.forEach((ctx, ctxIndex) => {
+                            const mirrorOrientation = this.boardOrientation[ctxIndex];
+                            const isVerticalMirrored = mirrorOrientation === 2 || mirrorOrientation === 3;
+                            let displayRowY = isVerticalMirrored ? 19 - rowY : rowY;
+                            
+                            if (blinkCount % 2 === 0) {
+                                // Show the row with original colors
+                                const rowColors = this.board.grid[rowY].map(cell => COLORS[cell]);
+                                this.drawFlashingAnimation(ctx, displayRowY, this.canvases[ctxIndex].width, this.canvases[ctxIndex].height, rowColors);
+                            } else {
+                                // Hide the row by drawing a black rectangle
+                                const cellWidth = this.canvases[ctxIndex].width / 10;
+                                const cellHeight = this.canvases[ctxIndex].height / 20;
+                                ctx.fillStyle = '#111';
+                                ctx.fillRect(0, displayRowY * cellHeight, this.canvases[ctxIndex].width, cellHeight);
+                            }
+                        });
+                    }, index * 150);
+                });
+                
+                blinkCount++;
+                
+                // Stop blinking after 6 blinks (3 full cycles)
+                if (blinkCount >= 6) {
+                    clearInterval(blinkInterval);
+                    
+                    // Now actually clear the rows from bottom to top
+                    for (let y = 19; y >= 0; y--) {
+                        // Check if the row is complete (all cells are filled)
+                        if (this.board.grid[y].every(cell => cell !== null)) {
+                            // Remove this row and add a new empty row at the top
+                            this.board.grid.splice(y, 1);
+                            this.board.grid.unshift(Array(10).fill(null));
+                            
+                            linesCleared++;
+                            
+                            // Since we removed a row, we need to check the same y index again
+                            y++;
                         }
-                        
-                        // Draw LED stripe effect
-                        this.drawLEDStripe(ctx, stripeY, this.canvases[ctxIndex].width, this.canvases[ctxIndex].height);
-                    });
-                }, index * 50); // Faster delay between rows (50ms instead of 100ms)
-            });
-            
-            // Wait for LED stripe animation before clearing lines
-            setTimeout(() => {
-                // Now actually clear the rows from bottom to top
-                for (let y = 19; y >= 0; y--) {
-                    // Check if the row is complete (all cells are filled)
-                    if (this.board.grid[y].every(cell => cell !== null)) {
-                        // Remove this row and add a new empty row at the top
-                        this.board.grid.splice(y, 1);
-                        this.board.grid.unshift(Array(10).fill(null));
-                        
-                        linesCleared++;
-                        
-                        // Since we removed a row, we need to check the same y index again
-                        y++;
                     }
+                    
+                    // Update the game state after animation
+                    this.explosionActive = false;
+                    this.updateScore(linesCleared);
+                    
+                    // Create new piece after animation
+                    this.createNewPiece();
+                    
+                    // Check if the game is over
+                    this.checkGameOver();
+                    
+                    // Render the board
+                    this.renderAllCanvases();
                 }
-                
-                // Update the game state after animation
-                this.explosionActive = false;
-                this.updateScore(linesCleared);
-                
-                // Create new piece after animation
-                this.createNewPiece();
-                
-                // Check if the game is over
-                this.checkGameOver();
-                
-                // Render the board
-                this.renderAllCanvases();
-                
-            }, 250 + completedRows.length * 50); // Faster overall animation (250ms base + 50ms per row)
+            }, 200); // Blink every 200ms
         }
         
         return linesCleared;
-    }
-
-    // Draw a Knight Rider-style LED stripe effect
-    drawLEDStripe(ctx, rowY, width, height) {
-        const cellWidth = width / 10;
-        const cellHeight = height / 20;
-        const y = rowY * cellHeight;
-        
-        // Create gradient for the LED effect
-        const gradient = ctx.createLinearGradient(0, y, width, y);
-        gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
-        gradient.addColorStop(0.2, 'rgba(255, 0, 0, 0.8)');
-        gradient.addColorStop(0.5, 'rgba(255, 0, 0, 1)');
-        gradient.addColorStop(0.8, 'rgba(255, 0, 0, 0.8)');
-        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-        
-        // Draw the LED stripe
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, y, width, cellHeight);
-        
-        // Add glow effect
-        ctx.shadowColor = 'rgba(255, 0, 0, 0.5)';
-        ctx.shadowBlur = 10;
-        ctx.fillRect(0, y, width, cellHeight);
-        
-        // Reset shadow
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
     }
     
     // Create a new piece
