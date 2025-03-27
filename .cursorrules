@@ -9,6 +9,7 @@
 - Features special mirror modes with circle-shaped blocks
 - Includes explosion animations and particle effects when lines are cleared
 - Demo mode with AI player for automatic gameplay
+- Tetromino selection feature in demo mode to force specific piece types
 - Persistent tetromino statistics stored in localStorage
 - High score tracking with medals for top performers
 
@@ -43,6 +44,7 @@
 - Levels increase as more lines are cleared, increasing game speed
 - The game features multiple board views with different mirror modes
 - Tetromino statistics are tracked and preserved between game sessions
+- In demo mode, players can click on tetromino statistics to force specific piece types
 - Top 10 high scores are saved and displayed at game over
 - Score is reset when starting a new game, but tetromino statistics persist
 
@@ -81,6 +83,8 @@
   - 🥇 First place
   - 🥈 Second place
   - 🥉 Third place
+- Demo Mode Indicators:
+  - Selected tetromino type: Highlighted with blue glow in statistics panel
 
 # Coding Style
 - Use camelCase for variables and functions
